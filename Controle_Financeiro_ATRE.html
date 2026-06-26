@@ -1,0 +1,2332 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle Financeiro ATRE</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --primary: #0b4f63; --primary-light: #1a6b82;
+  --accent: #1e88a8; --accent2: #5ecfe6;
+  --green: #2a9d5c; --green-light: #e6f7ee;
+  --red: #c0392b; --red-light: #fcecea;
+  --orange: #e07a28; --orange-light: #fef3e2;
+  --yellow: #d4aa2a; --yellow-light: #fdf8e0;
+  --bg: #f3f8fb; --card: #ffffff;
+  --text: #152938; --text-muted: #5a7a8a;
+  --border: #d0e8f0; --sidebar-w: 240px;
+}
+body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+.sidebar { width: var(--sidebar-w); min-height: 100vh; background: var(--primary); display: flex; flex-direction: column; position: fixed; left: 0; top: 0; z-index: 100; box-shadow: 1px 0 0 rgba(0,0,0,.04); }
+.sidebar-brand { padding: 24px 20px 16px; border-bottom: 1px solid rgba(255,255,255,.1); }
+.sidebar-brand h1 { color: #fff; font-size: 1.2rem; font-weight: 700; letter-spacing: 1px; }
+.sidebar-brand p { color: rgba(255,255,255,.55); font-size: .72rem; margin-top: 2px; }
+.sidebar-nav { padding: 12px 0; flex: 1; }
+.nav-section { padding: 8px 20px 4px; color: rgba(255,255,255,.4); font-size: .65rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 20px; color: rgba(255,255,255,.75); font-size: .87rem; cursor: pointer; transition: all .18s; border-left: 3px solid transparent; }
+.nav-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+.nav-item.active { background: rgba(255,255,255,.12); color: #fff; border-left-color: var(--accent2); font-weight: 600; }
+.nav-item .icon { font-size: 1.1rem; width: 22px; text-align: center; }
+.sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,.1); }
+.sidebar-footer p { color: rgba(255,255,255,.4); font-size: .7rem; }
+.main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+.topbar { background: var(--card); padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; box-shadow: 0 1px 0 var(--border); }
+.topbar h2 { font-size: 1.15rem; font-weight: 700; color: var(--primary); }
+.topbar .badge-periodo { background: var(--primary); color: #fff; padding: 4px 14px; border-radius: 20px; font-size: .78rem; font-weight: 600; }
+.content { padding: 28px 32px; flex: 1; }
+.page { display: none; } .page.active { display: block; }
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; margin-bottom: 28px; }
+.kpi-card { background: var(--card); border-radius: 12px; padding: 20px 22px; box-shadow: 0 1px 2px rgba(15,23,42,.04); border: 1px solid var(--border); border-left: 4px solid; display: flex; flex-direction: column; gap: 6px; }
+.kpi-card .kpi-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .8px; color: var(--text-muted); font-weight: 600; }
+.kpi-card .kpi-value { font-size: 1.55rem; font-weight: 700; }
+.kpi-card .kpi-sub { font-size: .75rem; color: var(--text-muted); }
+.kpi-card.blue { border-color: var(--accent); } .kpi-card.blue .kpi-value { color: var(--accent); }
+.kpi-card.green { border-color: var(--green); } .kpi-card.green .kpi-value { color: var(--green); }
+.kpi-card.orange { border-color: var(--orange); } .kpi-card.orange .kpi-value { color: var(--orange); }
+.kpi-card.red { border-color: var(--red); } .kpi-card.red .kpi-value { color: var(--red); }
+.kpi-card.teal { border-color: #00838f; } .kpi-card.teal .kpi-value { color: #00838f; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-bottom: 24px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 22px; margin-bottom: 24px; }
+.grid-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 22px; margin-bottom: 24px; }
+.grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 22px; margin-bottom: 24px; }
+.card { background: var(--card); border-radius: 12px; padding: 22px; box-shadow: 0 1px 2px rgba(15,23,42,.04); border: 1px solid var(--border); }
+.card-title { font-size: .85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.card-title .icon { font-size: 1rem; }
+.chart-wrap { position: relative; height: 270px; }
+.chart-wrap-lg { position: relative; height: 360px; }
+.chart-wrap-sm { position: relative; height: 190px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+th { background: #e5f3f8; color: var(--primary); padding: 9px 12px; text-align: left; font-weight: 600; font-size: .75rem; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; cursor: pointer; user-select: none; }
+th:hover { background: #d0eaf4; }
+td { padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+tr:hover td { background: #f0f9fc; }
+tr:last-child td { border-bottom: none; }
+.td-right { text-align: right; } .td-center { text-align: center; }
+.tfoot-row td { background: #e5f3f8; color: var(--primary); border-top: 1px solid var(--border); font-weight: 700; border-bottom: none; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+.badge-pagando { background: #ddf0f6; color: #0b4f63; }
+.badge-quitado { background: var(--green-light); color: var(--green); }
+.badge-inadimplente { background: var(--red-light); color: var(--red); }
+.badge-aviso { background: var(--yellow-light); color: #e65100; }
+.filters { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
+.filters input, .filters select { padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: .84rem; background: var(--card); color: var(--text); outline: none; transition: border-color .2s; }
+.filters input:focus, .filters select:focus { border-color: var(--accent); }
+.filters input { min-width: 220px; }
+.filter-count { font-size: .8rem; color: var(--text-muted); margin-left: auto; }
+.stats-row { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.stat-pill { background: var(--card); border-radius: 8px; padding: 10px 18px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 2px; }
+.stat-pill .sp-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); }
+.stat-pill .sp-value { font-size: 1.1rem; font-weight: 700; }
+.dre-cat-tabs { display: flex; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+.dre-cat-tab { padding: 9px 22px; border-radius: 8px; border: 2px solid var(--border); cursor: pointer; font-size: .88rem; font-weight: 700; transition: all .15s; background: var(--card); }
+.dre-cat-tab:hover { border-color: var(--accent2); color: var(--accent2); }
+.dre-cat-tab.active { background: var(--accent2); color: #fff; border-color: var(--accent2); }
+.dre-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.dre-tab { padding: 7px 16px; border-radius: 7px; border: 1.5px solid var(--border); cursor: pointer; font-size: .81rem; font-weight: 600; transition: all .15s; background: var(--card); }
+.dre-tab:hover { border-color: var(--accent); color: var(--accent); }
+.dre-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.dre-section-header td { background: #ddf0f6; font-weight: 700; color: var(--primary); }
+.dre-subtotal td { background: #edf7fb; font-weight: 600; border-top: 2px solid var(--primary); }
+.dre-total td { background: #ddf0f6; color: var(--primary); border-top: 2px solid var(--primary); font-weight: 700; }
+.dre-indent { padding-left: 28px !important; }
+.dre-positive { color: var(--green); font-weight: 600; }
+.dre-negative { color: var(--red); }
+.fc-saldo-pos { color: var(--green); font-weight: 700; }
+.fc-saldo-neg { color: var(--red); font-weight: 700; }
+.hc-row td:first-child { font-weight: 600; }
+.prog-bar-wrap { display: flex; align-items: center; gap: 10px; }
+.prog-bar { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+.prog-bar-fill { height: 100%; border-radius: 4px; }
+.prog-pct { font-size: .75rem; color: var(--text-muted); min-width: 36px; text-align: right; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #e0eff5; }
+::-webkit-scrollbar-thumb { background: #7abcd0; border-radius: 3px; }
+
+/* ── HAMBURGER BUTTON ── */
+.menu-toggle { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--primary); font-size: 1.5rem; line-height: 1; border-radius: 6px; }
+.menu-toggle:hover { background: var(--bg); }
+
+/* ── OVERLAY ── */
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 98; }
+.sidebar-overlay.active { display: block; }
+
+/* ── MOBILE ≤ 768px ── */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); transition: transform .25s ease; z-index: 99; }
+  .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,.25); }
+  .main { margin-left: 0; }
+  .menu-toggle { display: flex; align-items: center; }
+  .topbar { padding: 10px 16px; gap: 10px; }
+  .topbar h2 { font-size: .98rem; }
+  .topbar-left { display: flex; align-items: center; gap: 10px; }
+  .content { padding: 14px 18px; }
+  body { overflow-x: hidden; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  .kpi-card { padding: 13px 14px; gap: 4px; }
+  .kpi-card .kpi-value { font-size: 1.2rem; }
+  .kpi-card .kpi-label { font-size: .68rem; }
+  .grid-2, .grid-3, .grid-1-2, .grid-2-1 { grid-template-columns: 1fr; gap: 14px; margin-bottom: 16px; }
+  .card { padding: 14px; }
+  .chart-wrap { height: 210px; }
+  .chart-wrap-lg { height: 250px; }
+  .chart-wrap-sm { height: 170px; }
+  .filters { gap: 8px; }
+  .filters input { min-width: 0; flex: 1; width: 100%; }
+  .filters select { flex: 1; }
+  .filter-count { margin-left: 0; }
+  .stats-row { gap: 8px; }
+  .stat-pill { padding: 8px 12px; }
+  .stat-pill .sp-value { font-size: .95rem; }
+  td, th { padding: 7px 8px; font-size: .78rem; }
+  .dre-cat-tab { padding: 7px 14px; font-size: .82rem; }
+  .dre-tab { padding: 6px 11px; font-size: .77rem; }
+  .badge-periodo { font-size: .72rem; padding: 3px 10px; }
+}
+
+/* ── EXTRA SMALL ≤ 480px ── */
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+  .topbar h2 { font-size: .88rem; }
+  .kpi-card .kpi-value { font-size: 1.35rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <h1>ATRE</h1>
+    <p>Controle Financeiro</p>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" onclick="showPage('resumo',this)"><span class="icon">📊</span> Resumo</div>
+    <div class="nav-section">Carteiras</div>
+    <div class="nav-item" onclick="showPage('clube',this)"><span class="icon">👥</span> Partners Ouro</div>
+    <div class="nav-item" onclick="showPage('inadimplencia',this)"><span class="icon">⚠️</span> Inadimplência</div>
+    <div class="nav-item" onclick="showPage('formacoes',this)"><span class="icon">📚</span> Formações</div>
+    <div class="nav-section">Financeiro</div>
+    <div class="nav-item" onclick="showPage('fluxo',this)"><span class="icon">📈</span> Fluxo de Caixa</div>
+    <div class="nav-item" onclick="showPage('dre',this)"><span class="icon">📋</span> DRE Formações</div>
+    <div class="nav-section">Despesas</div>
+    <div class="nav-item" onclick="showPage('contas',this)"><span class="icon">💸</span> Contas Pagas</div>
+    <div class="nav-item" onclick="showPage('comissoes',this)"><span class="icon">🤝</span> Comissões</div>
+    <div class="nav-item" onclick="showPage('folha',this)"><span class="icon">👔</span> Folha</div>
+  </nav>
+  <div class="sidebar-footer">
+    <p id="sidebar-periodo">Referência: —</p>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+      <h2 id="page-title">Resumo Consolidado</h2>
+    </div>
+    <div class="badge-periodo" id="periodo-badge">—</div>
+  </div>
+  <div class="content">
+
+    <!-- RESUMO -->
+    <section class="page active" id="page-resumo">
+      <div id="resumo-kpis" class="kpi-grid">
+        <div class="kpi-card blue"><div class="kpi-label">Faturamento Total</div><div class="kpi-value">—</div><div class="kpi-sub">Carregando...</div></div>
+        <div class="kpi-card green"><div class="kpi-label">Total Recebido</div><div class="kpi-value">—</div><div class="kpi-sub">Carregando...</div></div>
+        <div class="kpi-card orange"><div class="kpi-label">A Receber</div><div class="kpi-value">—</div><div class="kpi-sub">Carteira ativa</div></div>
+        <div class="kpi-card red"><div class="kpi-label">Contas Pagas</div><div class="kpi-value">—</div><div class="kpi-sub">Despesas totais</div></div>
+        <div class="kpi-card teal"><div class="kpi-label">Saldo Bancário</div><div class="kpi-value">—</div><div class="kpi-sub">Disponível em caixa</div></div>
+      </div>
+      <div class="grid-2-1">
+        <div class="card">
+          <div class="card-title"><span class="icon">💼</span> Carteira de Recebíveis</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th onclick="sortTable(this)">Produto</th>
+                <th onclick="sortTable(this)">Qtd</th>
+                <th onclick="sortTable(this)" class="td-right">Valor Total</th>
+                <th onclick="sortTable(this)" class="td-right">Recebido</th>
+                <th onclick="sortTable(this)" class="td-right">A Receber</th>
+                <th>% Recebido</th>
+              </tr></thead>
+              <tbody id="carteira-tbody"><tr><td colspan="6" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr></tbody>
+              <tfoot id="carteira-tfoot"></tfoot>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="icon">🍩</span> Carteira por Produto</div>
+          <div class="chart-wrap"><canvas id="chartCarteira"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">⚠️</span> Inadimplência – Críticos</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Cliente</th>
+              <th class="td-right">Parcelas em Atraso</th>
+              <th class="td-right">Valor em Aberto</th>
+            </tr></thead>
+            <tbody id="resumo-inad-tbody"><tr><td colspan="3" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr></tbody>
+            <tfoot id="resumo-inad-tfoot"></tfoot>
+          </table>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="icon">💸</span> CONTAS PAGAS – 3 PRINCIPAIS CATEGORIAS</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Categoria</th>
+                <th class="td-right">Valor Pago</th>
+                <th class="td-right">% Total</th>
+                <th>Proporção</th>
+              </tr></thead>
+              <tbody id="desp-tbody"><tr><td colspan="4" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr></tbody>
+              <tfoot id="desp-tfoot"></tfoot>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="icon">👥</span> Headcount</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Vínculo</th><th class="td-right">Qtd</th>
+                <th class="td-right">Salários</th><th class="td-right">Benef./Enc.</th>
+                <th class="td-right">Custo Total</th>
+              </tr></thead>
+              <tbody id="hc-tbody"><tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr></tbody>
+              <tfoot id="hc-tfoot"></tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">📈</span> Fluxo de Caixa Projetado</div>
+        <div class="table-wrap">
+          <table>
+            <thead id="resumo-fluxo-thead"><tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr></thead>
+            <tbody id="resumo-fluxo-tbody"></tbody>
+            <tfoot id="resumo-fluxo-tfoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLUBE MENTORIA -->
+    <section class="page" id="page-clube">
+      <div class="stats-row" id="clube-stats"></div>
+      <div class="grid-1-2">
+        <div class="card">
+          <div class="card-title"><span class="icon">🍩</span> Status dos Clientes</div>
+          <div class="chart-wrap-sm"><canvas id="chartClubeStatus"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="icon">💰</span> Valor Contratado por Status</div>
+          <div class="chart-wrap-sm"><canvas id="chartClubeValor"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">👥</span> Clientes – Partners Ouro</div>
+        <div class="filters">
+          <input type="text" id="clube-search" placeholder="🔍  Buscar por nome..." oninput="filterClube()">
+          <select id="clube-status" onchange="filterClube()">
+            <option value="">Todos os status</option>
+            <option value="EM PAGAMENTO">Em Pagamento</option>
+            <option value="QUITADO">Quitado</option>
+            <option value="INADIMPLENTE">Inadimplente</option>
+          </select>
+          <select id="clube-ano" onchange="filterClube()">
+            <option value="">Todos os anos</option>
+            <option value="2026">2026</option>
+            <option value="2025">2025</option>
+          </select>
+          <span class="filter-count" id="clube-count"></span>
+        </div>
+        <div class="table-wrap">
+          <table id="clube-table">
+            <thead><tr>
+              <th onclick="sortTable(this)" data-col="0">#</th>
+              <th onclick="sortTable(this)" data-col="1">Nome</th>
+              <th onclick="sortTable(this)" data-col="2">Ano</th>
+              <th onclick="sortTable(this)" data-col="3">Início</th>
+              <th onclick="sortTable(this)" data-col="4">Fim</th>
+              <th onclick="sortTable(this)" data-col="5" class="td-center">Valor Contrato</th>
+              <th onclick="sortTable(this)" data-col="6" class="td-center">Ato Pago</th>
+              <th onclick="sortTable(this)" data-col="7" class="td-center">Saldo</th>
+              <th onclick="sortTable(this)" data-col="8">Status</th>
+            </tr></thead>
+            <tbody id="clube-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- INADIMPLÊNCIA -->
+    <section class="page" id="page-inadimplencia">
+      <div id="inad-kpis" class="kpi-grid">
+        <div class="kpi-card red"><div class="kpi-label">Total Inadimplente</div><div class="kpi-value" id="inad-total">—</div><div class="kpi-sub">Valores em aberto</div></div>
+        <div class="kpi-card orange"><div class="kpi-label">% Inadimplência</div><div class="kpi-value" id="inad-pct">—</div><div class="kpi-sub" id="inad-pct-sub">vs. A Receber total</div></div>
+        <div class="kpi-card blue"><div class="kpi-label">Clientes Inadimplentes</div><div class="kpi-value" id="inad-count">—</div><div class="kpi-sub">No Partners Ouro</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="icon">⚠️</span> Críticos Destacados</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Cliente</th><th class="td-right">Qtd Parc.</th>
+                <th class="td-right">Em Aberto</th><th>Status</th>
+              </tr></thead>
+              <tbody id="inad-criticos-tbody"><tr><td colspan="4" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr></tbody>
+              <tfoot><tr class="tfoot-row"><td>TOTAL GERAL</td><td class="td-right">—</td><td class="td-right" id="inad-total-geral">—</td><td></td></tr></tfoot>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="icon">🍩</span> Inadimplência × Adimplência</div>
+          <div class="chart-wrap"><canvas id="chartInadim"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">👥</span> Inadimplentes – Partners Ouro</div>
+        <div class="table-wrap">
+          <table id="inadim-table">
+            <thead><tr>
+              <th>Nome</th><th>Ano</th>
+              <th class="td-right">Valor Contrato</th>
+              <th class="td-right">Ato Pago</th>
+              <th class="td-right">Saldo em Aberto / À Vencer</th>
+            </tr></thead>
+            <tbody id="inadim-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- FLUXO DE CAIXA -->
+    <section class="page" id="page-fluxo">
+      <div id="fc-kpis" class="kpi-grid">
+        <div class="kpi-card green"><div class="kpi-label">Saldo Bancário</div><div class="kpi-value">—</div><div class="kpi-sub">Conta Corrente e Aplicações</div></div>
+        <div class="kpi-card blue"><div class="kpi-label">Total Entradas (12m)</div><div class="kpi-value">—</div><div class="kpi-sub">—</div></div>
+        <div class="kpi-card red"><div class="kpi-label">Total Saídas (12m)</div><div class="kpi-value">—</div><div class="kpi-sub">—</div></div>
+        <div class="kpi-card orange"><div class="kpi-label">Saldo Final</div><div class="kpi-value">—</div><div class="kpi-sub">—</div></div>
+      </div>
+      <div class="card" style="margin-bottom:24px">
+        <div class="card-title"><span class="icon">📈</span> Entradas, Saídas e Saldo Projetado</div>
+        <div class="chart-wrap-sm"><canvas id="chartFC"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">📋</span> Detalhamento Mensal</div>
+        <div class="table-wrap">
+          <table>
+            <thead id="fc-thead"></thead>
+            <tbody id="fc-tbody"></tbody>
+            <tfoot id="fc-tfoot"></tfoot>
+          </table>
+        </div>
+        <p id="fc-notes" style="margin-top:14px;font-size:.76rem;color:var(--text-muted);line-height:1.6"></p>
+      </div>
+    </section>
+
+    <!-- FORMAÇÕES -->
+    <section class="page" id="page-formacoes">
+      <div id="form-kpis" class="kpi-grid">
+        <div class="kpi-card blue"><div class="kpi-label">Total</div><div class="kpi-value" id="form-total">—</div><div class="kpi-sub">Qt vendida</div></div>
+        <div class="kpi-card teal"><div class="kpi-label">Faturamento</div><div class="kpi-value" id="form-fat">—</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">📚</span> Inscritos – Formações</div>
+        <div class="filters">
+          <input type="text" id="form-search" placeholder="🔍  Buscar por nome..." oninput="filterFormacoes()">
+          <select id="form-status" onchange="filterFormacoes()">
+            <option value="">Todos os status</option>
+            <option value="PAGO">Pago</option>
+            <option value="Parcial">Parcial</option>
+          </select>
+          <span class="filter-count" id="form-count"></span>
+        </div>
+        <div class="table-wrap">
+          <table id="form-table">
+            <thead><tr>
+              <th onclick="sortTable(this)">Nome</th>
+              <th onclick="sortTable(this)">Turma</th>
+              <th onclick="sortTable(this)">Tipo</th>
+              <th onclick="sortTable(this)" class="td-right">Valor Bruto</th>
+              <th onclick="sortTable(this)" class="td-right">Desconto</th>
+              <th onclick="sortTable(this)" class="td-right">Valor Líq.</th>
+              <th onclick="sortTable(this)">Forma Pgto</th>
+              <th onclick="sortTable(this)">Status</th>
+              <th onclick="sortTable(this)" class="td-center">Finalização</th>
+            </tr></thead>
+            <tbody id="form-tbody"><tr><td colspan="9" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTAS PAGAS -->
+    <section class="page" id="page-contas">
+      <div id="cp-kpis" class="kpi-grid">
+        <div class="kpi-card red"><div class="kpi-label">Total Pago (Mês)</div><div class="kpi-value" id="cp-kpi-mes">—</div><div class="kpi-sub" id="cp-kpi-mes-sub">Mês atual</div></div>
+        <div class="kpi-card orange"><div class="kpi-label">Total Pago Geral</div><div class="kpi-value" id="cp-kpi-geral">—</div><div class="kpi-sub">Conta Paga</div></div>
+        <div class="kpi-card blue"><div class="kpi-label">Antecipação de Resultados</div><div class="kpi-value" id="cp-kpi-antec">—</div><div class="kpi-sub">Conta Paga + Débito CC</div></div>
+      </div>
+      <div class="grid-2-1">
+        <div class="card">
+          <div class="card-title"><span class="icon">📊</span> Top Categorias de Despesa</div>
+          <div class="chart-wrap-lg"><canvas id="chartCPCat"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="icon">🍩</span> Conciliação</div>
+          <div class="chart-wrap"><canvas id="chartCPConc"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">💸</span> Contas Pagas – Transações</div>
+        <div class="filters">
+          <input type="text" id="cp-search" placeholder="🔍  Buscar por fornecedor..." oninput="filterCP()">
+          <select id="cp-periodo" onchange="filterCP()">
+            <option value="">Todos os períodos</option>
+          </select>
+          <select id="cp-categoria" onchange="filterCP()">
+            <option value="">Todas as categorias</option>
+          </select>
+          <span class="filter-count" id="cp-count"></span>
+        </div>
+        <div class="table-wrap">
+          <table id="cp-table">
+            <thead><tr>
+              <th onclick="sortTable(this)">Data</th>
+              <th onclick="sortTable(this)">Fornecedor</th>
+              <th onclick="sortTable(this)">Categoria</th>
+              <th onclick="sortTable(this)">Projeto</th>
+              <th onclick="sortTable(this)" class="td-right">Valor</th>
+            </tr></thead>
+            <tbody id="cp-tbody"><tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMISSÕES -->
+    <section class="page" id="page-comissoes">
+      <div id="com-kpis" class="kpi-grid">
+        <div class="kpi-card blue"><div class="kpi-label">Total Fabrícia</div><div class="kpi-value">—</div><div class="kpi-sub">Carregando...</div></div>
+        <div class="kpi-card orange"><div class="kpi-label">Total Eduardo</div><div class="kpi-value">—</div><div class="kpi-sub">Carregando...</div></div>
+        <div class="kpi-card red"><div class="kpi-label">Total Geral</div><div class="kpi-value">—</div><div class="kpi-sub">Todos os vendedores</div></div>
+        <div class="kpi-card green"><div class="kpi-label">Média Mensal</div><div class="kpi-value">—</div><div class="kpi-sub">Por período</div></div>
+      </div>
+      <div class="card" style="margin-bottom:24px">
+        <div class="card-title"><span class="icon">📊</span> Comissões por Mês e Vendedor</div>
+        <div class="chart-wrap-lg"><canvas id="chartComissoes"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">🤝</span> Detalhamento de Comissões</div>
+        <div class="table-wrap">
+          <table id="com-table">
+            <thead><tr>
+              <th onclick="sortTable(this)">Mês</th>
+              <th onclick="sortTable(this)">Vendedor</th>
+              <th onclick="sortTable(this)" class="td-right">Variável</th>
+              <th onclick="sortTable(this)" class="td-right">Fixo/Garantido</th>
+              <th onclick="sortTable(this)" class="td-right">Total</th>
+            </tr></thead>
+            <tbody id="com-tbody"><tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr></tbody>
+            <tfoot id="com-tfoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOLHA -->
+    <section class="page" id="page-folha">
+      <div id="folha-kpis" class="kpi-grid">
+        <div class="kpi-card blue"><div class="kpi-label">Total Colaboradores</div><div class="kpi-value">—</div><div class="kpi-sub">Carregando...</div></div>
+        <div class="kpi-card green"><div class="kpi-label">CLT</div><div class="kpi-value">—</div><div class="kpi-sub">Regime CLT</div></div>
+        <div class="kpi-card orange"><div class="kpi-label">PJ</div><div class="kpi-value">—</div><div class="kpi-sub">Pessoa Jurídica</div></div>
+        <div class="kpi-card red"><div class="kpi-label">Total Folha</div><div class="kpi-value">—</div><div class="kpi-sub">Custo mensal total</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="icon">📊</span> Custo por Vínculo</div>
+          <div class="chart-wrap"><canvas id="chartFolhaVinculo"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="icon">🏢</span> Custo por Área</div>
+          <div class="chart-wrap"><canvas id="chartFolhaArea"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">👔</span> Colaboradores</div>
+        <div class="table-wrap">
+          <table id="folha-table">
+            <thead><tr>
+              <th onclick="sortTable(this)">Nome</th>
+              <th onclick="sortTable(this)">Vínculo</th>
+              <th onclick="sortTable(this)">Área</th>
+              <th onclick="sortTable(this)" class="td-right">Salário</th>
+              <th onclick="sortTable(this)" class="td-right">Encargos</th>
+              <th onclick="sortTable(this)" class="td-right">Benefícios</th>
+              <th onclick="sortTable(this)" class="td-right">Total</th>
+            </tr></thead>
+            <tbody id="folha-tbody"><tr><td colspan="7" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr></tbody>
+            <tfoot id="folha-tfoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- DRE -->
+    <section class="page" id="page-dre">
+      <div id="dre-kpis" class="kpi-grid">
+        <div class="kpi-card blue"><div class="kpi-label">Receita Bruta Total</div><div class="kpi-value" id="dre-kpi-receita">—</div><div class="kpi-sub" id="dre-kpi-receita-sub">— turmas consolidadas</div></div>
+        <div class="kpi-card green"><div class="kpi-label">Margem Líquida %</div><div class="kpi-value" id="dre-kpi-margem">—</div><div class="kpi-sub" id="dre-kpi-margem-sub">% da receita bruta</div></div>
+        <div class="kpi-card orange"><div class="kpi-label">Margem Líquida R$</div><div class="kpi-value" id="dre-kpi-ll">—</div><div class="kpi-sub">Lucro líquido total</div></div>
+      </div>
+      <div class="dre-cat-tabs" id="dre-cat-tabs">
+        <button class="dre-cat-tab active" onclick="showDreCat('all',this)">Todas as Formações</button>
+        <button class="dre-cat-tab" onclick="showDreCat('fl',this)">Formação de Líderes</button>
+        <button class="dre-cat-tab" onclick="showDreCat('fv',this)">Formação de Vendas</button>
+      </div>
+      <div class="dre-tabs" id="dre-turma-tabs" style="margin-top:6px"></div>
+      <div class="card"><div id="dre-content"></div></div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const SHEET_ID = '1J1vkl2SsxJU4W52x5-SeSoC0mzehliEo';
+
+// ============================================================
+// DRE FV DATA (loaded from sheet)
+// ============================================================
+let DRE_FV_PARSED = { fl: [], fv: [], _currentCat: 'all' };
+
+// STATIC DRE DATA (kept as reference, replaced by sheet data)
+const DRE_DATA = {
+  flt1: {
+    name: "Formação de Líderes T1 – Dez/25", tickets: 118, periodo: "dez/25",
+    rows: [
+      { label: "(+) Receita Bruta de Vendas", val: 1047000, pct: "100,00%", type: "header" },
+      { label: "Formação de Líderes/Vendas", val: 1047000, pct: "100,00%", type: "sub", indent: true },
+      { label: "(-) Deduções de Receitas", val: -12015, pct: "-1,15%", type: "normal" },
+      { label: "Descontos", val: -12015, pct: "-1,15%", type: "sub", indent: true },
+      { label: "(-) Impostos", val: -58477, pct: "-5,59%", type: "normal" },
+      { label: "COFINS", val: -31050, pct: "-2,97%", type: "sub", indent: true },
+      { label: "ISS", val: -20700, pct: "-1,98%", type: "sub", indent: true },
+      { label: "PIS", val: -6727, pct: "-0,64%", type: "sub", indent: true },
+      { label: "= Receita Líquida de Vendas", val: 976508, pct: "93,27%", type: "subtotal" },
+      { label: "(-) Custo dos Serviços Prestados", val: -155168, pct: "-14,82%", type: "normal" },
+      { label: "PRODUÇÃO", val: -155168, pct: "-14,82%", type: "sub", indent: true },
+      { label: "= Margem Bruta", val: 821340, pct: "78,45%", type: "subtotal" },
+      { label: "(-) Despesas Variáveis", val: -119023, pct: "-11,37%", type: "normal" },
+      { label: "Comissões", val: -119023, pct: "-11,37%", type: "sub", indent: true },
+      { label: "(-) Despesas de Vendas e Marketing", val: 800, pct: "0,08%", type: "normal" },
+      { label: "Marketing", val: 800, pct: "0,08%", type: "sub", indent: true },
+      { label: "(-) Despesas com Pessoal", val: 0, pct: "0,00%", type: "normal" },
+      { label: "(-) Despesas Administrativas", val: 0, pct: "0,00%", type: "normal" }
+    ]
+  },
+  flt2: {
+    name: "Formação de Líderes T2 – Jan/26", tickets: 34, periodo: "jan/26",
+    rows: [
+      { label: "(+) Receita Bruta de Vendas", val: 186110, pct: "100,00%", type: "header" },
+      { label: "Formação de Líderes/Vendas", val: 186110, pct: "100,00%", type: "sub", indent: true },
+      { label: "(-) Deduções de Receitas", val: 0, pct: "0,00%", type: "normal" },
+      { label: "(-) Impostos", val: -10515, pct: "-5,65%", type: "normal" },
+      { label: "COFINS", val: -5583, pct: "-3,00%", type: "sub", indent: true },
+      { label: "ISS", val: -3722, pct: "-2,00%", type: "sub", indent: true },
+      { label: "PIS", val: -1210, pct: "-0,65%", type: "sub", indent: true },
+      { label: "= Receita Líquida de Vendas", val: 175595, pct: "94,35%", type: "subtotal" },
+      { label: "(-) Custo dos Serviços Prestados", val: -108669, pct: "-58,39%", type: "normal" },
+      { label: "Compra de Serviços", val: -23562, pct: "-12,66%", type: "sub", indent: true },
+      { label: "PRODUÇÃO", val: -85107, pct: "-45,73%", type: "sub", indent: true },
+      { label: "= Margem Bruta", val: 66926, pct: "35,96%", type: "subtotal" },
+      { label: "(-) Despesas Variáveis", val: -22895, pct: "-12,30%", type: "normal" },
+      { label: "Comissões", val: -21403, pct: "-11,50%", type: "sub", indent: true },
+      { label: "Despesas de Viagens", val: -1492, pct: "-0,80%", type: "sub", indent: true },
+      { label: "(-) Despesas de Vendas e Marketing", val: 0, pct: "0,00%", type: "normal" },
+      { label: "(-) Despesas com Pessoal", val: 0, pct: "0,00%", type: "normal" },
+      { label: "(-) Despesas Administrativas", val: 0, pct: "0,00%", type: "normal" }
+    ]
+  },
+  fvt1: {
+    name: "Formação de Vendas T1 – Mar/26", tickets: 70, periodo: "mar/26",
+    rows: [
+      { label: "(+) Receita Bruta de Vendas", val: 132790, pct: "100,00%", type: "header" },
+      { label: "Formação de Líderes/Vendas", val: 132790, pct: "100,00%", type: "sub", indent: true },
+      { label: "(-) Deduções de Receitas", val: -3330, pct: "-2,51%", type: "normal" },
+      { label: "Descontos", val: -3330, pct: "-2,51%", type: "sub", indent: true },
+      { label: "(-) Impostos", val: -7315, pct: "-5,51%", type: "normal" },
+      { label: "COFINS", val: -3884, pct: "-2,92%", type: "sub", indent: true },
+      { label: "ISS", val: -2589, pct: "-1,95%", type: "sub", indent: true },
+      { label: "PIS", val: -841, pct: "-0,63%", type: "sub", indent: true },
+      { label: "= Receita Líquida de Vendas", val: 122146, pct: "91,98%", type: "subtotal" },
+      { label: "(-) Custo dos Serviços Prestados", val: -46929, pct: "-35,34%", type: "normal" },
+      { label: "PRODUÇÃO", val: -46929, pct: "-35,34%", type: "sub", indent: true },
+      { label: "= Margem Bruta", val: 75217, pct: "56,64%", type: "subtotal" },
+      { label: "(-) Despesas Variáveis", val: -14888, pct: "-11,21%", type: "normal" },
+      { label: "Comissões", val: -14888, pct: "-11,21%", type: "sub", indent: true },
+      { label: "(-) Despesas de Vendas e Marketing", val: 0, pct: "0,00%", type: "normal" },
+      { label: "(-) Despesas com Pessoal", val: 0, pct: "0,00%", type: "normal" },
+      { label: "(-) Despesas Administrativas", val: 0, pct: "0,00%", type: "normal" }
+    ]
+  }
+};
+
+// ============================================================
+// DYNAMIC GLOBALS
+// ============================================================
+let CLUBE_DATA = [];
+let _inadimData = { topRows: [], totalRow: [], pct: '—' };
+let _periodo = '';
+let FORMACOES_DATA = [];
+let CP_DATA = { rows: [] };
+let MATRIZ_DATA = { totalMes: 0, totalGeral: 0, totalAntec: 0, mesLabel: '—' };
+let CP_CATS = [];
+let COM_DATA = [];
+let FOLHA_DATA = { employees: [], totalCLT: 0, totalPJ: 0, totalGeral: 0, headcount: {} };
+
+// ============================================================
+// HELPERS
+// ============================================================
+const _nf = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
+function fmt(v)    { return _nf.format(Math.trunc(v)); }
+function fmtCmp(v) { return _nf.format(Math.trunc(v)); }
+function fmtN(v)   { return _nf.format(Math.abs(Math.trunc(v))); }
+function parseBRL(s) {
+  if (!s || s === '-' || s === '—') return 0;
+  const str = String(s).replace(/[R$\s]/g, '').trim();
+  if (!str) return 0;
+  let n;
+  // Formato BR: vírgula como decimal, pontos como milhar  →  "1.234.567,89"
+  if (str.includes(',')) {
+    n = parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+  // Apenas pontos (sem vírgula): distinguir ponto decimal de separador de milhar
+  } else if (str.includes('.')) {
+    const parts = str.split('.');
+    // Um único ponto = sempre decimal JS  →  "8331356.50", "9972021.799999991"
+    if (parts.length === 2) {
+      n = parseFloat(str) || 0;
+    } else {
+      // Múltiplos pontos = separador de milhar BR  →  "8.331.356"
+      n = parseFloat(str.replace(/\./g, '')) || 0;
+    }
+  } else {
+    n = parseFloat(str) || 0;
+  }
+  // Descarta os últimos 2 dígitos (centavos) — mantém o número exatamente como na origem
+  return Math.trunc(n);
+}
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+function statusBadge(s) {
+  if (s === 'EM PAGAMENTO') return '<span class="badge badge-pagando">Em Pagamento</span>';
+  if (s === 'QUITADO')      return '<span class="badge badge-quitado">Quitado</span>';
+  if (s === 'INADIMPLENTE') return '<span class="badge badge-inadimplente">Inadimplente</span>';
+  return s || '—';
+}
+
+// ============================================================
+// JSONP FETCH
+// ============================================================
+let _cbIdx = 0;
+function fetchSheet(sheetName, cb) {
+  const cbName = '__gviz_' + (++_cbIdx);
+  window[cbName] = function(resp) {
+    delete window[cbName];
+    document.getElementById('_s' + cbName)?.remove();
+    try {
+      const rows = (resp.table?.rows || []).map(row =>
+        (row.c || []).map(cell => (cell && cell.v !== null && cell.v !== undefined) ? String(cell.v) : '')
+      );
+      cb(rows);
+    } catch (e) { console.error('fetchSheet', sheetName, e); cb([]); }
+  };
+  const s = document.createElement('script');
+  s.id = '_s' + cbName;
+  s.onerror = () => { delete window[cbName]; cb([]); };
+  s.src = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+    '/gviz/tq?tqx=out:json;responseHandler:' + cbName +
+    '&sheet=' + encodeURIComponent(sheetName) + '&headers=0';
+  document.head.appendChild(s);
+}
+
+// ============================================================
+// CHARTS
+// ============================================================
+Chart.defaults.font.family = "'Segoe UI', Arial, sans-serif";
+Chart.defaults.color = '#2a4a58';
+Chart.defaults.plugins.legend.labels.boxWidth = 10;
+Chart.defaults.plugins.legend.labels.font = { size: 11 };
+Chart.register(ChartDataLabels);
+Chart.defaults.set('plugins.datalabels', { display: false });
+
+const PAL = ['#1e88a8','#2a9d5c','#e07a28','#c0392b','#8e44ad','#d4aa2a','#16a085'];
+const _charts = {};
+function mkChart(id, cfg) {
+  if (_charts[id]) _charts[id].destroy();
+  _charts[id] = new Chart(document.getElementById(id), cfg);
+  return _charts[id];
+}
+const pctLabel = (value, ctx) => {
+  const data = ctx.chart.data.datasets[0].data;
+  const total = data.reduce((a, b) => a + (+b || 0), 0);
+  if (!total) return '';
+  const p = (value / total) * 100;
+  return p < 2 ? '' : p.toFixed(1).replace('.', ',') + '%';
+};
+const pctOfDatasetLabel = (v, ctx) => {
+  const data = ctx.dataset.data.map(x => Math.abs(+x || 0));
+  const total = data.reduce((a, b) => a + b, 0);
+  if (!total) return '';
+  const p = Math.abs(v) / total * 100;
+  return p < 4 ? '' : p.toFixed(1).replace('.', ',') + '%';
+};
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+const PAGE_TITLES = {
+  resumo: 'Resumo Consolidado', clube: 'Partners Ouro',
+  inadimplencia: 'Inadimplência', fluxo: 'Fluxo de Caixa Projetado', dre: 'DRE – Formações',
+  formacoes: 'Formações', contas: 'Contas Pagas', comissoes: 'Comissões', folha: 'Folha de Pagamento'
+};
+function toggleSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('active');
+}
+
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+  setText('page-title', PAGE_TITLES[id] || id);
+  // Fechar sidebar no mobile após navegar
+  if (window.innerWidth <= 768) {
+    document.querySelector('.sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('active');
+  }
+}
+
+// ============================================================
+// PARSING
+// ============================================================
+function fmtPeriod(v) {
+  if (!v) return '—';
+  const s = String(v).trim();
+  if (isNaN(+s) || s === '') return s; // already a string like "dez.-25"
+  const n = +s;
+  if (n > 40000 && n < 70000) {
+    const d = new Date((n - 25569) * 86400000);
+    const M = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    return M[d.getUTCMonth()] + '/' + String(d.getUTCFullYear()).slice(2);
+  }
+  return s;
+}
+function fmtPeriodFull(v) {
+  if (!v) return '—';
+  const n = +String(v).trim();
+  if (isNaN(n) || n < 40000 || n > 70000) return String(v);
+  const d = new Date((n - 25569) * 86400000);
+  const M = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  return String(d.getUTCDate()).padStart(2,'0') + '/' + M[d.getUTCMonth()] + '/' + String(d.getUTCFullYear()).slice(2);
+}
+function fmtDateClube(v) {
+  if (!v && v !== 0) return '—';
+  const s = String(v).trim();
+  if (!s) return '—';
+  const gd = s.match(/^Date\((\d{4}),(\d+),(\d+)\)$/);
+  if (gd) {
+    return String(+gd[3]).padStart(2,'0') + '/' + String(+gd[2]+1).padStart(2,'0') + '/' + gd[1];
+  }
+  const n = +s;
+  if (!isNaN(n) && n > 40000 && n < 60000) {
+    const dt = new Date((n - 25569) * 86400000);
+    return String(dt.getUTCDate()).padStart(2,'0') + '/' + String(dt.getUTCMonth()+1).padStart(2,'0') + '/' + dt.getUTCFullYear();
+  }
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+  return s;
+}
+
+function parseClube(raw) {
+  const out = [];
+  for (let i = 0; i < raw.length; i++) {
+    const r = raw[i];
+    const num = parseInt(r[0]);
+    if (!num) continue;
+    if (!r[1] || String(r[1]).toUpperCase().includes('TOTAL')) break;
+    // [num, nome, ano, ini, fim, valor, ato, saldo, status, colN]
+    // Partners Ouro: col2=TIPO, col3=Ano, col4=Início, col5=Fim, col6=Valor, col7=Ato, col9=Saldo, col12=Status, col14=ColN
+    out.push([num, r[1], r[3] || '', fmtDateClube(r[4]), fmtDateClube(r[5]), r[6] || '0', r[7] || '0', r[9] || '0', r[12] || '', r[14] || '0']);
+  }
+  return out;
+}
+
+function parseFC(raw) {
+  const N = raw.length;
+
+  // Find entradas row (MENSAL TOTAL)
+  let entIdx = -1;
+  for (let i = 0; i < N; i++) {
+    if (String(raw[i][1] || '').toUpperCase().includes('MENSAL TOTAL')) { entIdx = i; break; }
+  }
+  // Month header is the row just before entradas
+  let mIdx = entIdx > 0 ? entIdx - 1 : -1;
+  if (mIdx < 0) {
+    for (let i = 0; i < N; i++) {
+      let cnt = 0;
+      for (let c = 4; c <= 15; c++) {
+        const v = raw[i][c];
+        if ((typeof v === 'number' && v > 40000 && v < 70000) ||
+            String(v || '').match(/^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)/i)) cnt++;
+      }
+      if (cnt >= 3) { mIdx = i; if (entIdx < 0) entIdx = i + 1; break; }
+    }
+  }
+  if (mIdx < 0) mIdx = 1;
+  if (entIdx < 0) entIdx = 2;
+
+  let saiIdx = -1, salIdx = -1;
+  for (let i = entIdx; i < N; i++) {
+    const t = String(raw[i][1] || '').toUpperCase().trim();
+    if (saiIdx < 0 && t.includes('TOTAL GERAL')) saiIdx = i;
+    if (salIdx < 0 && t === 'SALDO') salIdx = i;
+  }
+  if (saiIdx < 0) saiIdx = 23;
+  if (salIdx < 0) salIdx = 29;
+
+  // Build months and column index list
+  const mRow = raw[mIdx] || [];
+  const months = [], colIdxs = [];
+  for (let c = 4; c <= 15; c++) {
+    const v = mRow[c];
+    if (v !== null && v !== undefined && v !== '') {
+      months.push(fmtPeriod(v));
+      colIdxs.push(c);
+    }
+  }
+
+  function getVals(ri) {
+    const r = raw[ri] || [];
+    return colIdxs.map(c => {
+      const v = r[c];
+      if (v === null || v === undefined || v === '') return 0;
+      return parseBRL(String(v));
+    });
+  }
+
+  const entradas = getVals(entIdx);
+  const saidas   = getVals(saiIdx).map(v => Math.abs(v));
+  const saldo    = getVals(salIdx);
+
+  // Saldo inicial
+  let saldoIni = 509831;
+  for (let i = 0; i < N; i++) {
+    const txt = (String(raw[i][0] || '') + ' ' + String(raw[i][1] || '')).toUpperCase();
+    if (txt.includes('SALDO') && (txt.includes('INICIAL') || txt.includes('BANC'))) {
+      for (const ci of [2, 3, 1, 4]) { const v = parseBRL(raw[i][ci]); if (v) { saldoIni = v; break; } }
+      break;
+    }
+  }
+
+  // Build allRows for the full detailed table
+  const allRows = [];
+  for (let i = 1; i < N; i++) {
+    if (i === mIdx) continue; // skip month header row
+    const r = raw[i] || [];
+    const label = String(r[1] || '').replace(/\n/g, ' ').trim();
+    if (!label) continue;
+    const lu = label.toUpperCase();
+    if (lu === 'CATEGORIA') continue;
+    if (lu.includes('SALDO BANC') || label.toLowerCase().includes('c/ aplic')) continue;
+
+    const vals = getVals(i);
+    // Detect truly empty rows (section headers) vs data rows with zero values
+    const hasRawCells = colIdxs.some(c => {
+      const v = (raw[i] || [])[c];
+      return v !== null && v !== undefined && String(v) !== '';
+    });
+
+    let type = 'row';
+    if (lu.includes('MENSAL TOTAL')) type = 'entradas';
+    else if (lu === 'TOTAL GERAL') type = 'total-geral';
+    else if (lu.trim() === 'SALDO') type = 'saldo';
+    else if (lu.startsWith('TOTAL')) type = 'total';
+    else if (!hasRawCells) type = 'section';
+
+    allRows.push({ label, type, vals });
+  }
+
+  return { months, entradas, saidas, saldo, despFixas: months.map(() => 0), antec: months.map(() => 0), saldoIni, allRows };
+}
+
+// ============================================================
+// PARSING — FORMAÇÕES
+// ============================================================
+function parseFormacoes(raw) {
+  const out = [];
+  for (let i = 2; i < raw.length; i++) {
+    const r = raw[i];
+    const turma = String(r[0] || '').trim();
+    const num   = parseInt(r[1]);
+    if (!num || !r[2] || String(r[2]).toUpperCase().includes('TOTAL')) continue;
+    out.push({
+      turma, num,
+      nome:      r[2]  || '',
+      cpf:       r[3]  || '',
+      tel:       r[4]  || '',
+      email:     r[5]  || '',
+      origem:    r[6]  || '',
+      tipo:      r[7]  || '',
+      valorBruto: parseBRL(r[8]  || '0'),
+      desconto:   parseBRL(r[9]  || '0'),
+      valorLiq:   parseBRL(r[10] || '0'),
+      formaPgto:  r[11] || '',
+      parcelas:   r[12] || '',
+      respFin:    r[13] || '',
+      obs:        r[14] || '',
+      status:     r[15] || '',
+      data:       r[16] || '',
+      vendedor:   r[18] || ''
+    });
+  }
+  return out;
+}
+
+// ============================================================
+// PARSING — CP (Contas Pagas)
+// ============================================================
+function parseCPDate(s) {
+  const m = String(s||'').match(/Date\((\d+),(\d+),(\d+)\)/);
+  if (!m) return s || '';
+  return String(+m[3]).padStart(2,'0') + '/' + String(+m[2]+1).padStart(2,'0') + '/' + m[1];
+}
+function parseCPMonthKey(s) {
+  const m = String(s||'').match(/Date\((\d+),(\d+)/);
+  if (!m) return '';
+  const M = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  return M[+m[2]] + '/' + String(m[1]).slice(2);
+}
+function parseCPSortKey(s) {
+  const m = String(s||'').match(/Date\((\d+),(\d+)/);
+  if (!m) return '';
+  return m[1] + String(+m[2]).padStart(2,'0');
+}
+
+function parseCP(raw) {
+  const rows = [];
+  for (let i = 1; i < raw.length; i++) {
+    const r = raw[i];
+    const sit = String(r[0] || '').trim();
+    if (!sit) continue;
+    const up = sit.toUpperCase();
+    if (up.includes('TOTAL PAGO') || up.includes('TOTAL GERAL') || up === 'TOTAL') continue;
+    rows.push({
+      situacao:   sit,
+      data:       parseCPDate(r[1]),
+      dataSortKey:parseCPSortKey(r[1]),
+      mesKey:     parseCPMonthKey(r[1]),
+      fornecedor: r[2]  || '',
+      categoria:  r[4]  || '',
+      projeto:    r[17] || '',
+      valor:      parseBRL(r[5]  || '0'),
+      mes:        r[22] || r[21] || r[20] || ''
+    });
+  }
+  return { rows };
+}
+
+// ============================================================
+// PARSING — Matriz (Antecipação de Resultados)
+// ============================================================
+function parseMatriz(raw) {
+  const today = new Date();
+  const curY = today.getFullYear(), curM = today.getMonth();
+  let totalMes = 0, totalGeral = 0, totalAntec = 0;
+  const M = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  for (let i = 1; i < raw.length; i++) {
+    const r = raw[i];
+    const origem = String(r[14] || '').trim();
+    const categ  = String(r[4]  || '').trim();
+    const val    = Math.abs(parseBRL(r[5] || '0'));
+    if (!val) continue;
+    const isDevolucao = categ === 'Devoluções de Vendas de Serviços Prestados';
+    if (origem === 'Conta Paga' && !isDevolucao) {
+      totalGeral += val;
+      const dm = String(r[1]||'').match(/Date\((\d+),(\d+)/);
+      if (dm && +dm[1] === curY && +dm[2] === curM) totalMes += val;
+    }
+    if (origem === 'Conta Paga' || origem === 'Débito em Conta Corrente') {
+      totalAntec += val;
+    }
+  }
+  const mesLabel = M[curM] + '/' + String(curY).slice(2);
+  return { totalMes, totalGeral, totalAntec, mesLabel };
+}
+
+// ============================================================
+// PARSING — CP.categorias
+// ============================================================
+function parseCPCategorias(raw) {
+  const out = [];
+  for (let i = 0; i < raw.length; i++) {
+    const r = raw[i];
+    const cat = String(r[0] || '').trim();
+    if (!cat || cat.toUpperCase() === 'TOTAIS' || cat.toUpperCase() === 'CATEGORIA') continue;
+    const val = parseBRL(r[1] || '');
+    if (!val) continue;
+    out.push({ categoria: cat, valor: Math.abs(val), pctTotal: String(r[2] || ''), pctReceita: String(r[3] || '') });
+  }
+  return out.sort((a, b) => b.valor - a.valor);
+}
+
+// ============================================================
+// PARSING — Comissões
+// ============================================================
+function parseComissoes(raw) {
+  const out = [];
+  let curMes = '';
+  for (let i = 0; i < raw.length; i++) {
+    const r = raw[i];
+    const col0 = String(r[0] || '').trim();
+    const col1 = String(r[1] || '').trim();
+    if (col0.match(/^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)/i)) curMes = col0;
+    if (!curMes) continue;
+    const vendedor = col1.match(/fabr/i) ? 'Fabrícia' : col1.match(/eduar/i) ? 'Eduardo' : '';
+    if (!vendedor) continue;
+    const variavel = Math.abs(parseBRL(r[5] || '0'));
+    const fixo     = Math.abs(parseBRL(r[8] || '0'));
+    const total    = Math.abs(parseBRL(r[11] || '0')) || variavel + fixo;
+    out.push({ mes: curMes, vendedor, variavel, fixo, total });
+  }
+  return out;
+}
+
+// ============================================================
+// PARSING — Folha
+// ============================================================
+function parseFolha(raw) {
+  // Row index 2 has headcount summary
+  let headcount = { total: 0, clt: 0, pj: 0, totalFolha: 0 };
+  const r2 = raw[2] || [];
+  headcount.total     = parseInt(r2[0]) || 0;
+  headcount.clt       = parseInt(r2[2]) || 0;
+  headcount.pj        = parseInt(r2[4]) || 0;
+  headcount.totalFolha = parseBRL(r2[6] || '');
+
+  const employees = [];
+  let totalCLT = 0, totalPJ = 0, totalGeral = 0;
+  for (let i = 6; i < raw.length; i++) {
+    const r = raw[i];
+    const nome = String(r[0] || '').trim();
+    if (!nome) continue;
+    const up = nome.toUpperCase();
+    if (up.includes('SUBTOTAL') || up.includes('TOTAL') || up.includes('NOTA') || up.includes('OBS')) {
+      if (up.includes('CLT')) totalCLT = parseBRL(r[6] || '');
+      else if (up.includes('PJ'))  totalPJ  = parseBRL(r[6] || '');
+      else if (up.includes('TOTAL GERAL') || up === 'TOTAL') totalGeral = parseBRL(r[6] || '');
+      continue;
+    }
+    const vinculo = String(r[1] || '').trim();
+    if (!vinculo) continue;
+    employees.push({
+      nome,
+      vinculo,
+      area:       r[2] || '',
+      salario:    parseBRL(r[3] || '0'),
+      encargos:   parseBRL(r[4] || '0'),
+      beneficios: parseBRL(r[5] || '0'),
+      total:      parseBRL(r[6] || '0')
+    });
+  }
+  if (!totalGeral) totalGeral = totalCLT + totalPJ;
+  return { employees, totalCLT, totalPJ, totalGeral, headcount };
+}
+
+// ============================================================
+// RENDER — RESUMO
+// ============================================================
+function renderResumo(rows) {
+  const N = rows.length;
+  function fi(kw, from, anyCol) {
+    from = from || 0; anyCol = anyCol || false;
+    for (let i = from; i < N; i++) {
+      const r = rows[i] || [];
+      const hit = anyCol
+        ? r.some(c => String(c || '').toUpperCase().includes(kw))
+        : String(r[0] || '').toUpperCase().includes(kw);
+      if (hit) return i;
+    }
+    return -1;
+  }
+
+  // Period
+  let badge = '—';
+  outer: for (let i = 0; i < Math.min(6, N); i++) {
+    for (const c of (rows[i] || [])) {
+      const m = String(c || '').match(/([A-Za-z]{3}\/\d{4})/i);
+      if (m) { badge = m[1].toUpperCase(); break outer; }
+    }
+  }
+  _periodo = badge;
+  setText('periodo-badge', badge);
+  setText('sidebar-periodo', 'Referência: ' + badge);
+
+  // KPIs
+  const kpiLbl = fi('FATURAMENTO', 0, true);
+  const kpiRow = kpiLbl >= 0 ? (rows[kpiLbl + 1] || []) : [];
+  const fatN = parseBRL(kpiRow[0]), recN = parseBRL(kpiRow[1]);
+  const arN  = parseBRL(kpiRow[2]), cpN  = parseBRL(kpiRow[3]), salN = parseBRL(kpiRow[4]);
+  const recPct = fatN > 0 ? (recN / fatN * 100).toFixed(1).replace('.', ',') + '% do faturamento' : 'Carteira total';
+
+  document.getElementById('resumo-kpis').innerHTML = `
+    <div class="kpi-card blue"><div class="kpi-label">Faturamento Total</div><div class="kpi-value">${fmtCmp(fatN)}</div><div class="kpi-sub">Base 2025–2026</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Total Recebido</div><div class="kpi-value">${fmtCmp(recN)}</div><div class="kpi-sub">${recPct}</div></div>
+    <div class="kpi-card orange"><div class="kpi-label">A Receber</div><div class="kpi-value">${fmtCmp(arN)}</div><div class="kpi-sub">Carteira ativa</div></div>
+    <div class="kpi-card red"><div class="kpi-label">Contas Pagas</div><div class="kpi-value">-${fmtCmp(Math.abs(cpN))}</div><div class="kpi-sub">Despesas totais</div></div>
+    <div class="kpi-card teal"><div class="kpi-label">Saldo Bancário</div><div class="kpi-value">${fmtCmp(salN)}</div><div class="kpi-sub">Disponível em caixa</div></div>`;
+
+  // Section boundaries
+  const secCart = fi('CARTEIRA');
+  const secInad = fi('INADIMP', secCart >= 0 ? secCart + 1 : 0);
+  const secDesp = fi('CONTAS',  secInad >= 0 ? secInad + 1 : 0);
+  const secHC   = fi('HEADCOUNT', secDesp >= 0 ? secDesp + 1 : 0);
+  const secEnd  = fi('FLUXO',  secHC   >= 0 ? secHC   + 1 : 0);
+
+  // CARTEIRA
+  const cartHdr = fi('PRODUTO', secCart >= 0 ? secCart + 1 : 0);
+  const cartBound = secInad >= 0 ? secInad : N;
+  const carteiraRows = []; let cartTotal = [];
+  if (cartHdr >= 0) {
+    for (let i = cartHdr + 1; i < cartBound; i++) {
+      const r = rows[i], a = String(r[0] || '').trim();
+      if (!a) continue;
+      if (a.toUpperCase().includes('TOTAL')) { cartTotal = r; break; }
+      carteiraRows.push(r);
+    }
+  }
+  renderCarteira(carteiraRows, cartTotal);
+
+  // INADIMPLÊNCIA
+  const inadHdr = fi('CLIENTE', secInad >= 0 ? secInad + 1 : 0);
+  const inadBound = secDesp >= 0 ? secDesp : N;
+  const inadTop = []; let inadTotalRow = []; let inadPct = '—';
+  if (inadHdr >= 0) {
+    for (let i = inadHdr + 1; i < inadBound; i++) {
+      const r = rows[i], a = String(r[0] || '').trim();
+      if (!a) continue;
+      if (a.toUpperCase().includes('TOTAL')) {
+        inadTotalRow = r;
+        for (let j = i + 1; j < inadBound; j++) {
+          const ap = String(rows[j]?.[0] || '').trim();
+          if (!ap) continue;
+          if (ap.includes('%')) inadPct = rows[j][4] || rows[j][3] || rows[j][2] || '—';
+          break;
+        }
+        break;
+      }
+      inadTop.push(r);
+    }
+  }
+  _inadimData = { topRows: inadTop, totalRow: inadTotalRow, pct: inadPct };
+  renderInadimPage();
+
+  // DESPESAS
+  const despHdr = fi('CATEGORIA', secDesp >= 0 ? secDesp + 1 : 0);
+  const despBound = secHC >= 0 ? secHC : N;
+  const despRows = [];
+  if (despHdr >= 0) {
+    for (let i = despHdr + 1; i < despBound; i++) {
+      const r = rows[i], a = String(r[0] || '').trim();
+      if (!a) continue;
+      if (a.toUpperCase().includes('TOTAL')) break;
+      despRows.push(r);
+    }
+  }
+  renderDespesas(despRows);
+
+  // HEADCOUNT
+  const hcHdr = fi('NCULO', secHC >= 0 ? secHC + 1 : 0);
+  const hcBound = secEnd >= 0 ? secEnd : N;
+  const hcRows = [];
+  if (hcHdr >= 0) {
+    for (let i = hcHdr + 1; i < hcBound; i++) {
+      const r = rows[i];
+      if (!r[0] || String(r[0]).trim() === '') continue;
+      hcRows.push(r);
+    }
+  }
+  renderHeadcount(hcRows);
+
+  // FLUXO DE CAIXA — tabela (dados da aba Resumo, sem gráfico)
+  if (secEnd >= 0) {
+    const fluxoHdrRow = rows[secEnd + 1] || [];
+    const entLbl = fi('ENTRAD', secEnd + 1);
+    const saiLbl = fi('SA',     entLbl >= 0 ? entLbl + 1 : secEnd + 2);
+    const salLbl = fi('SALDO',  saiLbl >= 0 ? saiLbl + 1 : secEnd + 3, true);
+    const entRow = entLbl >= 0 ? (rows[entLbl] || []) : [];
+    const saiRow = saiLbl >= 0 ? (rows[saiLbl] || []) : [];
+    const salRow = salLbl >= 0 ? (rows[salLbl] || []) : [];
+
+    const pvMonths = [], pvEntradas = [], pvSaidas = [], pvSaldo = [];
+    for (let c = 1; c < fluxoHdrRow.length; c++) {
+      const mRaw = String(fluxoHdrRow[c] || '').trim();
+      if (!mRaw) continue;
+      let mLabel = mRaw;
+      const ptMon = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+      const gd = mRaw.match(/^Date\((\d{4}),(\d+),(\d+)\)$/);
+      if (gd) {
+        // Formato gviz json: "Date(2026,5,1)"
+        mLabel = (ptMon[+gd[2]] || gd[2]) + '/' + gd[1].slice(2);
+      } else {
+        const serial = +mRaw;
+        if (!isNaN(serial) && serial > 40000 && serial < 60000) {
+          // Serial numérico do Sheets (dias desde 01/01/1900, ex: 46174 = Jun/26)
+          const d = new Date((serial - 25569) * 86400000);
+          mLabel = ptMon[d.getUTCMonth()] + '/' + String(d.getUTCFullYear()).slice(2);
+        } else {
+          // Texto "jun.-26" ou "jun/26"
+          const td = mRaw.match(/^([a-záàâãéêíóôõúüç]{3,})[\.\-\/\s]+(\d{2,4})$/i);
+          if (td) mLabel = td[1][0].toUpperCase() + td[1].slice(1, 3) + '/' + td[2].slice(-2);
+        }
+      }
+      pvMonths.push(mLabel);
+      pvEntradas.push(parseBRL(entRow[c]));
+      pvSaidas.push(parseBRL(saiRow[c]));
+      const rawSal = salRow.length > 1 ? salRow[c] : null;
+      pvSaldo.push(rawSal !== null && rawSal !== '' && rawSal !== undefined ? parseBRL(rawSal) : null);
+    }
+
+    if (pvMonths.length) {
+      const fluxoThead = document.getElementById('resumo-fluxo-thead');
+      const fluxoTbody = document.getElementById('resumo-fluxo-tbody');
+      const fluxoTfoot = document.getElementById('resumo-fluxo-tfoot');
+
+      if (fluxoThead) {
+        fluxoThead.innerHTML = `<tr>
+          <th>Categoria</th>
+          ${pvMonths.map(m => `<th class="td-right">${m}</th>`).join('')}
+        </tr>`;
+      }
+
+      if (fluxoTbody) {
+        function fluxoCell(v) {
+          if (v === 0) return `<td class="td-right" style="color:var(--text-muted)">—</td>`;
+          const clr = v > 0 ? 'var(--green)' : 'var(--red)';
+          return `<td class="td-right" style="color:${clr};font-weight:600">${fmt(v)}</td>`;
+        }
+        const entCells = pvMonths.map((_, i) => fluxoCell(pvEntradas[i])).join('');
+        const saiCells = pvMonths.map((_, i) => fluxoCell(pvSaidas[i])).join('');
+        const salCells = pvMonths.map((_, i) => {
+          const sal = pvSaldo[i] !== null ? pvSaldo[i] : pvEntradas[i] + pvSaidas[i];
+          if (sal === 0) return `<td class="td-right" style="color:var(--text-muted);font-weight:700">—</td>`;
+          const clr = sal >= 0 ? 'var(--green)' : 'var(--red)';
+          return `<td class="td-right" style="color:${clr};font-weight:700">${fmt(sal)}</td>`;
+        }).join('');
+        fluxoTbody.innerHTML = `
+          <tr><td style="font-weight:600">Entradas</td>${entCells}</tr>
+          <tr><td style="font-weight:600">Saídas</td>${saiCells}</tr>
+        `;
+        if (fluxoTfoot) {
+          fluxoTfoot.innerHTML = `<tr class="tfoot-row"><td>Saldo</td>${salCells}</tr>`;
+        }
+      }
+    }
+  }
+}
+
+function renderCarteira(rows, total) {
+  const colors = PAL;
+  const tbody = document.getElementById('carteira-tbody');
+  const tfoot = document.getElementById('carteira-tfoot');
+  if (tbody) {
+    tbody.innerHTML = rows.map((r, i) => {
+      const vt = parseBRL(r[2]), rc = parseBRL(r[3]), ar = parseBRL(r[4]);
+      const pct = vt > 0 ? Math.round(rc / vt * 100) : 0;
+      return `<tr>
+        <td>${r[0] || ''}</td><td>${r[1] || '—'}</td>
+        <td class="td-right">${fmt(vt)}</td>
+        <td class="td-right">${fmt(rc)}</td>
+        <td class="td-right">${ar > 0 ? fmt(ar) : '—'}</td>
+        <td><div class="prog-bar-wrap">
+          <div class="prog-bar"><div class="prog-bar-fill" style="width:${pct}%;background:${colors[i % colors.length]}"></div></div>
+          <span class="prog-pct">${pct}%</span>
+        </div></td></tr>`;
+    }).join('');
+  }
+  if (tfoot && total.length > 0) {
+    const tv = parseBRL(total[2]), tr2 = parseBRL(total[3]), ta = parseBRL(total[4]);
+    tfoot.innerHTML = `<tr class="tfoot-row"><td>TOTAL</td><td>—</td>
+      <td class="td-right">${fmt(tv)}</td><td class="td-right">${fmt(tr2)}</td>
+      <td class="td-right">${ta > 0 ? fmt(ta) : '—'}</td><td></td></tr>`;
+  }
+  // Chart
+  mkChart('chartCarteira', {
+    type: 'doughnut',
+    data: { labels: rows.map(r => r[0]), datasets: [{ data: rows.map(r => parseBRL(r[2])), backgroundColor: PAL, borderWidth: 1, borderColor: '#fff' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => { const t = ctx.dataset.data.reduce((a,b)=>a+(+b||0),0); const p = t?(ctx.parsed/t*100).toFixed(1).replace('.',',')+'%':''; return ' '+ctx.label+': '+fmt(ctx.parsed)+' ('+p+')'; } } },
+        datalabels: { display: true, color: '#fff', font: { size: 10, weight: '600' }, formatter: pctLabel }
+      },
+      cutout: '64%'
+    }
+  });
+}
+
+function renderDespesas(rows) {
+  if (!rows.length) return;
+  const data = rows.map(r => ({
+    cat: r[0],
+    val: Math.abs(parseBRL(r[1] || '') || parseBRL(r[2] || '') || parseBRL(r[3] || ''))
+  })).filter(d => d.val > 0).sort((a, b) => b.val - a.val);
+  const totalDesp = data.reduce((s, d) => s + d.val, 0);
+  const maxVal = data[0]?.val || 1;
+
+  const tbody = document.getElementById('desp-tbody');
+  const tfoot = document.getElementById('desp-tfoot');
+  if (tbody) {
+    tbody.innerHTML = data.map((d, i) => {
+      const pct = totalDesp > 0 ? (d.val / totalDesp * 100) : 0;
+      const barW = Math.round(d.val / maxVal * 100);
+      const color = PAL[i % PAL.length];
+      return `<tr>
+        <td>${d.cat}</td>
+        <td class="td-right" style="font-weight:600">${fmt(d.val)}</td>
+        <td class="td-right" style="color:var(--text-muted)">${pct.toFixed(1).replace('.', ',')}%</td>
+        <td style="min-width:100px"><div class="prog-bar-wrap">
+          <div class="prog-bar"><div class="prog-bar-fill" style="width:${barW}%;background:${color}"></div></div>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+  if (tfoot && totalDesp) {
+    tfoot.innerHTML = `<tr class="tfoot-row"><td>TOTAL</td><td class="td-right">${fmt(totalDesp)}</td><td class="td-right">100%</td><td></td></tr>`;
+  }
+}
+
+function renderHeadcount(rows) {
+  const tbody = document.getElementById('hc-tbody');
+  const tfoot = document.getElementById('hc-tfoot');
+  if (!tbody) return;
+  const dataRows = rows.filter(r => !String(r[0] || '').toUpperCase().includes('TOTAL'));
+  const totalRow = rows.find(r => String(r[0] || '').toUpperCase().includes('TOTAL')) || [];
+  tbody.innerHTML = dataRows.map(r => `<tr class="hc-row">
+    <td>${r[0]||''}</td>
+    <td class="td-right td-center">${r[1]||'—'}</td>
+    <td class="td-right">${parseBRL(r[2]) ? fmt(parseBRL(r[2])) : '—'}</td>
+    <td class="td-right">${parseBRL(r[3]) ? fmt(parseBRL(r[3])) : '—'}</td>
+    <td class="td-right">${parseBRL(r[4]) ? fmt(parseBRL(r[4])) : '—'}</td>
+  </tr>`).join('');
+  if (tfoot && totalRow.length) {
+    tfoot.innerHTML = `<tr class="tfoot-row">
+      <td>TOTAL FOLHA</td>
+      <td class="td-right td-center">${totalRow[1]||'—'}</td>
+      <td class="td-right">${parseBRL(totalRow[2]) ? fmt(parseBRL(totalRow[2])) : '—'}</td>
+      <td class="td-right">${parseBRL(totalRow[3]) ? fmt(parseBRL(totalRow[3])) : '—'}</td>
+      <td class="td-right">${parseBRL(totalRow[4]) ? fmt(parseBRL(totalRow[4])) : '—'}</td>
+    </tr>`;
+  }
+}
+
+function renderRecebimentos(kpiRow, carteiraRows) {
+  const rec2025 = parseBRL(carteiraRows[0]?.[7] || '');
+  const rec2026 = parseBRL(kpiRow[7] || '');
+  const recMes  = parseBRL(kpiRow[8] || '');
+  const total   = rec2025 + rec2026;
+  const tbody = document.getElementById('rec-tbody');
+  const tfoot = document.getElementById('rec-tfoot');
+  if (tbody) tbody.innerHTML = `
+    <tr><td>Recebido em 2025 (Mentoria)</td><td class="td-right">${rec2025 ? fmt(rec2025) : '—'}</td></tr>
+    <tr><td>Recebido em 2026 (acumulado)</td><td class="td-right">${rec2026 ? fmt(rec2026) : '—'}</td></tr>
+    <tr><td>Recebido ${_periodo || 'Mês Anterior'}</td><td class="td-right">${recMes ? fmt(recMes) : '—'}</td></tr>`;
+  if (tfoot) tfoot.innerHTML = `<tr class="tfoot-row"><td>TOTAL 2025 + 2026</td><td class="td-right">${total ? fmt(total) : '—'}</td></tr>`;
+}
+
+// ============================================================
+// RENDER — INADIMPLÊNCIA
+// ============================================================
+function renderInadimPage() {
+  // KPIs
+  const totalV = parseBRL(_inadimData.totalRow[4] || _inadimData.totalRow[3] || _inadimData.totalRow[2] || '');
+  setText('inad-total', totalV ? fmt(totalV) : '—');
+  const pctRaw = parseFloat(_inadimData.pct);
+  const pctFmt = !isNaN(pctRaw)
+    ? (pctRaw <= 1 ? pctRaw * 100 : pctRaw).toFixed(2).replace('.', ',') + '%'
+    : '—';
+  setText('inad-pct', pctFmt);
+
+  // Críticos
+  const tbody = document.getElementById('inad-criticos-tbody');
+  if (tbody && _inadimData.topRows.length) {
+    tbody.innerHTML = _inadimData.topRows.map(r => {
+      const emAberto = parseBRL(r[4] || r[3] || r[2] || '');
+      const parc = r[2] || r[1] || '—';
+      return `<tr>
+        <td>${r[0]||''}</td>
+        <td class="td-right">${parc}</td>
+        <td class="td-right">${emAberto ? fmt(emAberto) : '—'}</td>
+        <td><span class="badge badge-inadimplente">Crítico</span></td>
+      </tr>`;
+    }).join('');
+  }
+  setText('inad-total-geral', totalV ? fmt(totalV) : '—');
+
+  // Count from CLUBE_DATA
+  const inadCount = CLUBE_DATA.filter(r => r[8] === 'INADIMPLENTE').length;
+  setText('inad-count', inadCount || '—');
+
+  // Full inadim table
+  renderInadim();
+  renderResumoInad();
+}
+
+function renderResumoInad() {
+  const tbody = document.getElementById('resumo-inad-tbody');
+  const tfoot = document.getElementById('resumo-inad-tfoot');
+  if (!tbody) return;
+  const rows = _inadimData.topRows;
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted)">Sem dados</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => {
+    const nome = r[0] || '—';
+    const parc = (r[2] && !isNaN(String(r[2]).trim())) ? r[2] : '—';
+    const val  = parseBRL(r[4] || r[3] || r[2] || '');
+    return `<tr>
+      <td>${nome}</td>
+      <td class="td-right">${parc}</td>
+      <td class="td-right" style="font-weight:600;color:var(--red)">${val ? fmt(val) : '—'}</td>
+    </tr>`;
+  }).join('');
+  const totalV = parseBRL(_inadimData.totalRow[4] || _inadimData.totalRow[3] || _inadimData.totalRow[2] || '');
+  if (tfoot) {
+    tfoot.innerHTML = `<tr class="tfoot-row">
+      <td>Total</td><td></td>
+      <td class="td-right" style="color:var(--red)">${totalV ? fmt(totalV) : '—'}</td>
+    </tr>`;
+  }
+}
+
+function renderInadim() {
+  const inad = CLUBE_DATA.filter(r => r[8] === 'INADIMPLENTE');
+  const tbody = document.getElementById('inadim-tbody');
+  if (tbody) {
+    tbody.innerHTML = inad.map(r => `<tr>
+      <td>${r[1]}</td>
+      <td class="td-center">${r[2]}</td>
+      <td class="td-right">${parseBRL(r[5]) ? fmt(parseBRL(r[5])) : '—'}</td>
+      <td class="td-right">${parseBRL(r[6]) ? fmt(parseBRL(r[6])) : '—'}</td>
+      <td class="td-right" style="color:var(--red);font-weight:600">${parseBRL(r[7]) ? fmt(parseBRL(r[7])) : '—'}</td>
+    </tr>`).join('');
+  }
+
+  // Donut chart — usa % da planilha de origem
+  const pctRawInad = parseFloat(_inadimData.pct);
+  const pctInad = !isNaN(pctRawInad) ? (pctRawInad <= 1 ? pctRawInad * 100 : pctRawInad) : 0;
+  const pctAdim = 100 - pctInad;
+  mkChart('chartInadim', {
+    type: 'doughnut',
+    data: {
+      labels: ['Adimplente', 'Inadimplente'],
+      datasets: [{ data: [pctAdim, pctInad], backgroundColor: ['#2a9d5c', '#c0392b'], borderWidth: 1, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 14, font: { size: 12 } } },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.label + ': ' + ctx.parsed.toFixed(2) + '%' } },
+        datalabels: { display: true, color: '#fff', font: { size: 12, weight: '700' }, formatter: v => v.toFixed(2).replace('.', ',') + '%' }
+      },
+      cutout: '66%'
+    }
+  });
+}
+
+// ============================================================
+// RENDER — CLUBE
+// ============================================================
+let sortDir = {};
+function renderClube(data) {
+  const tbody = document.getElementById('clube-tbody');
+  if (tbody) {
+    tbody.innerHTML = data.map(r => `<tr>
+      <td class="td-center">${r[0]}</td>
+      <td>${r[1]}</td>
+      <td class="td-center">${r[2]}</td>
+      <td>${r[3]}</td><td>${r[4]}</td>
+      <td class="td-center">${parseBRL(r[5]) ? fmt(parseBRL(r[5])) : '—'}</td>
+      <td class="td-center">${parseBRL(r[6]) ? fmt(parseBRL(r[6])) : '—'}</td>
+      <td class="td-center">${parseBRL(r[7]) ? fmt(parseBRL(r[7])) : '—'}</td>
+      <td>${statusBadge(r[8])}</td>
+    </tr>`).join('');
+  }
+  setText('clube-count', data.length + ' cliente(s)');
+}
+
+function filterClube() {
+  const q  = document.getElementById('clube-search').value.toLowerCase();
+  const st = document.getElementById('clube-status').value;
+  const yr = document.getElementById('clube-ano').value;
+  renderClube(CLUBE_DATA.filter(r =>
+    r[1].toLowerCase().includes(q) &&
+    (!st || r[8] === st) &&
+    (!yr || String(r[2]) === yr)
+  ));
+}
+
+function renderClubeStats() {
+  const total = CLUBE_DATA.length;
+  const pag  = CLUBE_DATA.filter(r => r[8] === 'EM PAGAMENTO').length;
+  const quit = CLUBE_DATA.filter(r => r[8] === 'QUITADO').length;
+  const inad = CLUBE_DATA.filter(r => r[8] === 'INADIMPLENTE').length;
+  const totalVal = CLUBE_DATA.reduce((s, r) => s + parseBRL(r[5]), 0);
+  const recVal   = CLUBE_DATA.reduce((s, r) => s + parseBRL(r[6]), 0);
+  const el = document.getElementById('clube-stats');
+  if (el) el.innerHTML = `
+    <div class="stat-pill"><div class="sp-label">Total Clientes</div><div class="sp-value">${total}</div></div>
+    <div class="stat-pill"><div class="sp-label">Em Pagamento</div><div class="sp-value" style="color:var(--accent)">${pag}</div></div>
+    <div class="stat-pill"><div class="sp-label">Quitados</div><div class="sp-value" style="color:var(--green)">${quit}</div></div>
+    <div class="stat-pill"><div class="sp-label">Inadimplentes</div><div class="sp-value" style="color:var(--red)">${inad}</div></div>
+    <div class="stat-pill"><div class="sp-label">Valor Total</div><div class="sp-value">${fmtCmp(totalVal)}</div></div>`;
+}
+
+function renderClubeCharts() {
+  const pag  = CLUBE_DATA.filter(r => r[8] === 'EM PAGAMENTO').length;
+  const quit = CLUBE_DATA.filter(r => r[8] === 'QUITADO').length;
+  const inad = CLUBE_DATA.filter(r => r[8] === 'INADIMPLENTE').length;
+  mkChart('chartClubeStatus', {
+    type: 'doughnut',
+    data: { labels: ['Em Pagamento','Quitado','Inadimplente'], datasets: [{ data: [pag, quit, inad], backgroundColor: ['#1e88a8','#2a9d5c','#c0392b'], borderWidth: 1, borderColor: '#fff' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 14, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => { const t=ctx.dataset.data.reduce((a,b)=>a+(+b||0),0); return ' '+ctx.label+': '+ctx.parsed+' clientes ('+(t?(ctx.parsed/t*100).toFixed(1).replace('.',',')+'%':'')+')'; } } },
+        datalabels: { display: true, color: '#fff', font: { size: 10, weight: '600' }, formatter: pctLabel }
+      },
+      cutout: '66%'
+    }
+  });
+
+  const vPag = CLUBE_DATA.filter(r=>r[8]==='EM PAGAMENTO').reduce((s,r)=>s+parseBRL(r[5]),0);
+  const vQuit= CLUBE_DATA.filter(r=>r[8]==='QUITADO').reduce((s,r)=>s+parseBRL(r[5]),0);
+  const vInad= CLUBE_DATA.filter(r=>r[8]==='INADIMPLENTE').reduce((s,r)=>s+parseBRL(r[9]),0);
+  mkChart('chartClubeValor', {
+    type: 'bar',
+    data: { labels: ['Em Pagamento','Quitado','Inadimplente'], datasets: [{ label: 'Valor Contratado', data: [vPag,vQuit,vInad], backgroundColor: ['#1e88a8','#2a9d5c','#c0392b'], borderRadius: 3, borderSkipped: false }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.parsed.y) } },
+        datalabels: { display: true, anchor: 'end', align: 'top', color: '#3a2e26', font: { size: 10, weight: '600' },
+          formatter: (v, ctx) => { const t=ctx.chart.data.datasets[0].data.reduce((a,b)=>a+(+b||0),0); return fmt(v)+'\n'+(v/t*100).toFixed(1).replace('.',',')+'%'; } }
+      },
+      scales: { x: { grid:{display:false} }, y: { ticks:{ callback: v=>fmt(v) }, grid:{color:'#f1e9dc'} } },
+      layout: { padding: { top: 18 } }
+    }
+  });
+}
+
+// ============================================================
+// RENDER — FLUXO DE CAIXA
+// ============================================================
+function renderFCKPIs(fc) {
+  const totalEnt  = fc.entradas.reduce((a,b)=>a+b,0);
+  const totalSai  = fc.saidas.reduce((a,b)=>a+b,0);
+  const finalSald = fc.saldo[fc.saldo.length-1] || 0;
+  const lastMes   = fc.months[fc.months.length-1] || '';
+  const firstMes  = fc.months[0] || '';
+  const saldoCls  = finalSald < 0 ? 'red' : 'green';
+  const saldoSub  = finalSald < 0 ? 'Projeção – atenção!' : 'Projeção positiva';
+  document.getElementById('fc-kpis').innerHTML = `
+    <div class="kpi-card green"><div class="kpi-label">Saldo Bancário</div><div class="kpi-value">${fmtCmp(fc.saldoIni)}</div><div class="kpi-sub">Conta Corrente e Aplicações</div></div>
+    <div class="kpi-card blue"><div class="kpi-label">Total Entradas (12m)</div><div class="kpi-value">${fmtCmp(totalEnt)}</div><div class="kpi-sub">${firstMes} – ${lastMes}</div></div>
+    <div class="kpi-card red"><div class="kpi-label">Total Saídas (12m)</div><div class="kpi-value">-${fmtCmp(totalSai)}</div><div class="kpi-sub">${firstMes} – ${lastMes}</div></div>
+    <div class="kpi-card ${saldoCls}"><div class="kpi-label">Saldo Final (${lastMes})</div><div class="kpi-value">${finalSald<0?'-':''}${fmtCmp(Math.abs(finalSald))}</div><div class="kpi-sub">${saldoSub}</div></div>`;
+}
+
+function renderFCTable(fc) {
+  const m = fc.months;
+  const thead = document.getElementById('fc-thead');
+  if (thead) thead.innerHTML = '<tr><th>Categoria</th>' + m.map(x => `<th class="td-right">${x}</th>`).join('') + '</tr>';
+
+  function fmtV(v) {
+    if (v === 0) return '—';
+    return v < 0 ? '(' + fmt(Math.abs(v)) + ')' : fmt(v);
+  }
+
+  const tbody = document.getElementById('fc-tbody');
+  const tfoot = document.getElementById('fc-tfoot');
+
+  if (tbody && fc.allRows) {
+    let html = '';
+    let firstSection = true;
+    fc.allRows.forEach(row => {
+      if (row.type === 'saldo') return;
+      if (row.type === 'section') {
+        const spacer = firstSection ? '' : `<tr><td colspan="${m.length + 1}" style="height:10px;background:transparent;border:none"></td></tr>`;
+        firstSection = false;
+        html += spacer + `<tr><td colspan="${m.length + 1}" style="background:#e5f3f8;color:var(--primary);font-weight:700;font-size:.77rem;text-transform:uppercase;letter-spacing:.4px;padding:8px 12px;border-top:2px solid var(--border)">${row.label}</td></tr>`;
+      } else if (row.type === 'total-geral') {
+        html += `<tr style="background:#fcecea;font-weight:700"><td>${row.label}</td>${row.vals.map(v => `<td class="td-right" style="color:${v < 0 ? '#c0392b' : 'inherit'}">${fmtV(v)}</td>`).join('')}</tr>`;
+      } else if (row.type === 'total') {
+        html += `<tr style="background:#edf7fb;font-weight:600;border-top:1px solid var(--border)"><td>${row.label}</td>${row.vals.map(v => `<td class="td-right">${fmtV(v)}</td>`).join('')}</tr>`;
+      } else if (row.type === 'entradas') {
+        html += `<tr style="font-weight:600;background:#e6f5ee"><td>Entradas</td>${row.vals.map(v => `<td class="td-right">${fmtV(v)}</td>`).join('')}</tr>`;
+      } else {
+        html += `<tr><td style="padding-left:20px">${row.label}</td>${row.vals.map(v => `<td class="td-right">${fmtV(v)}</td>`).join('')}</tr>`;
+      }
+    });
+    tbody.innerHTML = html;
+  }
+
+  if (tfoot && fc.allRows) {
+    const salRow = fc.allRows.find(r => r.type === 'saldo');
+    if (salRow) {
+      const cells = salRow.vals.map(v => {
+        const cls = v >= 0 ? 'fc-saldo-pos' : 'fc-saldo-neg';
+        const bg  = v >= 0 ? '#e6f5ee' : '#fcecea';
+        const s   = v === 0 ? '—' : (v < 0 ? '(' + fmt(Math.abs(v)) + ')' : fmt(v));
+        return `<td class="td-right ${cls}" style="background:${bg}">${s}</td>`;
+      });
+      tfoot.innerHTML = `<tr><td style="background:var(--primary);color:#fff;font-weight:700">Saldo</td>${cells.join('')}</tr>`;
+    }
+  }
+
+  setText('fc-notes', '');
+}
+
+function renderFCCharts(fc) {
+  const { months, entradas, saidas, saldo } = fc;
+
+  // --- Opções compartilhadas ---
+  const sharedTooltip = { callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + fmt(Math.abs(ctx.parsed.y)) } };
+  const gridColor = '#daeef4';
+
+  // --- Gráfico completo (página Fluxo) — com datalabels compactos ---
+  mkChart('chartFC', {
+    type: 'bar',
+    data: { labels: months, datasets: [
+      { label: 'Entradas', data: entradas, backgroundColor: 'rgba(42,157,92,.82)', borderRadius: 4, borderSkipped: false, order: 2, barPercentage: 0.45, categoryPercentage: 0.7 },
+      { label: 'Saídas',   data: saidas.map(v => -v), backgroundColor: 'rgba(192,57,43,.78)', borderRadius: 4, borderSkipped: false, order: 2, barPercentage: 0.45, categoryPercentage: 0.7 },
+      { label: 'Saldo Acumulado', data: saldo, type: 'line', borderColor: '#1e88a8', backgroundColor: 'rgba(30,136,168,.12)',
+        fill: true, tension: .4, pointRadius: 5, pointHoverRadius: 7, borderWidth: 2.5,
+        pointBackgroundColor: ctx => saldo[ctx.dataIndex] < 0 ? '#c0392b' : '#1e88a8',
+        yAxisID: 'y2', order: 1 }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', labels: { padding: 16, usePointStyle: true, pointStyleWidth: 10 } },
+        tooltip: sharedTooltip,
+        datalabels: {
+          display: ctx => ctx.dataset.type === 'line',
+          color: '#1e88a8', font: { size: 9, weight: '700' },
+          anchor: 'end', align: ctx => (saldo[ctx.dataIndex] || 0) < 0 ? 'bottom' : 'top',
+          formatter: v => fmtCmp(v)
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { ticks: { callback: v => fmtCmp(v) }, grid: { color: gridColor } },
+        y2: { position: 'right', ticks: { callback: v => fmtCmp(v) }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ============================================================
+// PARSE + RENDER — DRE (FL e FV)
+// ============================================================
+function parseDreSheet(raw, valueCols, cat) {
+  const periodRow = raw[1] || [];
+  function gv(ri, col) {
+    if (!raw[ri]) return 0;
+    const v = raw[ri][col];
+    if (v === null || v === undefined || v === '') return 0;
+    if (typeof v === 'number') return v;
+    return parseBRL(String(v));
+  }
+  function lbl(ri) { return raw[ri] ? String(raw[ri][1] || '').trim() : ''; }
+
+  const result = [];
+  valueCols.forEach((col, ti) => {
+    const periodSerial = periodRow[col];
+    const period    = fmtPeriod(periodSerial);
+    const periodDay = fmtPeriodFull(periodSerial);
+    const rb = gv(2, col);
+    if (!rb) return;
+
+    const ded    = gv(4,  col);
+    const imp    = gv(5,  col);
+    const recLiq = gv(6,  col);
+    const csp    = gv(7,  col);
+    const oc     = gv(8,  col);
+    const mb     = gv(9,  col);
+    const dv     = gv(10, col);
+    const rcv    = gv(11, col);
+    const mkt    = gv(12, col);
+    const pes    = gv(13, col);
+    const adm    = gv(14, col);
+    const ebitda = gv(15, col);
+    const rfi    = gv(16, col);
+    const dfi    = gv(17, col);
+    const lair   = gv(18, col);
+    const ot     = gv(19, col);
+    const ll     = gv(20, col);
+    const mlPct  = rb ? ll / rb : 0;
+    const tNum   = ti + 1;
+    const catName = cat === 'fl' ? 'Formação de Líderes' : 'Formação de Vendas';
+
+    const rows = [
+      { label: lbl(2)  || '(+) Receita Bruta de Vendas',         val: rb,      type: 'header' },
+      { label: lbl(4)  || '(-) Deduções de Receitas',            val: ded,     type: 'normal' },
+      { label: lbl(5)  || '(-) Impostos',                         val: imp,     type: 'normal' },
+      { label: lbl(6)  || '= Receita Líquida de Vendas',         val: recLiq,  type: 'subtotal' },
+      { label: lbl(7)  || '(-) Custo dos Serviços Prestados',    val: csp,     type: 'normal' },
+      { label: lbl(8)  || '(-) Outros Custos',                   val: oc,      type: 'normal' },
+      { label: lbl(9)  || '= Margem Bruta',                      val: mb,      type: 'subtotal' },
+      { label: lbl(10) || '(-) Despesas Variáveis',              val: dv,      type: 'normal' },
+      { label: lbl(11) || '(+) Recuperação de Despesas',         val: rcv,     type: 'normal' },
+      { label: lbl(12) || '(-) Despesas de Vendas e Marketing',  val: mkt,     type: 'normal' },
+      { label: lbl(13) || '(-) Despesas com Pessoal',            val: pes,     type: 'normal' },
+      { label: lbl(14) || '(-) Despesas Administrativas',        val: adm,     type: 'normal' },
+      { label: lbl(15) || '= EBITDA – Lucro Operacional',        val: ebitda,  type: 'subtotal' },
+      { label: lbl(16) || '(+) Receitas Financeiras',            val: rfi,     type: 'normal' },
+      { label: lbl(17) || '(-) Despesas Financeiras',            val: dfi,     type: 'normal' },
+      { label: lbl(18) || '= LAIR – Lucro antes dos Impostos',   val: lair,    type: 'subtotal' },
+      { label: lbl(19) || '(-) Outros Tributos',                 val: ot,      type: 'normal' },
+      { label: lbl(20) || '= Lucro Líquido',                     val: ll,      type: 'total' },
+    ];
+
+    result.push({ cat, tNum, period, periodDay,
+      name: (cat==='fl'?'Líderes':'Vendas') + ' T' + tNum,
+      fullName: catName + ' T' + tNum,
+      receitaBruta: rb, lucroLiquido: ll, margemLiquida: mlPct, rows });
+  });
+  return result;
+}
+
+function renderDreTop() {
+  const cat = DRE_FV_PARSED._currentCat || 'all';
+  let turmas;
+  if (cat === 'all') {
+    turmas = [...(DRE_FV_PARSED.fl||[]), ...(DRE_FV_PARSED.fv||[])];
+  } else {
+    turmas = DRE_FV_PARSED[cat] || [];
+  }
+  const totalRB  = turmas.reduce((s, t) => s + t.receitaBruta, 0);
+  const totalLL  = turmas.reduce((s, t) => s + t.lucroLiquido, 0);
+  const mlPct    = totalRB ? totalLL / totalRB : 0;
+  const catLabel = cat === 'all'
+    ? turmas.length + ' turmas consolidadas'
+    : turmas.length + ' turmas – ' + (cat === 'fl' ? 'Líderes' : 'Vendas');
+
+  setText('dre-kpi-receita',     fmt(totalRB));
+  setText('dre-kpi-receita-sub', catLabel);
+  setText('dre-kpi-margem',      (mlPct * 100).toFixed(2).replace('.', ',') + ' %');
+  setText('dre-kpi-ll',          fmt(totalLL));
+}
+
+function renderDreTurmaButtons() {
+  const el = document.getElementById('dre-turma-tabs');
+  if (!el) return;
+  const cat = DRE_FV_PARSED._currentCat || 'all';
+  if (cat === 'all') {
+    el.innerHTML = '';
+    const content = document.getElementById('dre-content');
+    if (content) content.innerHTML = '';
+    renderDreTop();
+    return;
+  }
+  const turmas = DRE_FV_PARSED[cat] || [];
+  el.innerHTML = turmas.map((t, i) =>
+    `<button class="dre-tab${i===0?' active':''}" onclick="showDreTurma(${i},this)">${t.periodDay}</button>`
+  ).join('');
+  renderDreTop();
+  if (turmas.length) showDreTurmaContent(0);
+}
+
+function showDreCat(cat, btn) {
+  document.querySelectorAll('.dre-cat-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  DRE_FV_PARSED._currentCat = cat;
+  renderDreTurmaButtons();
+}
+
+function showDreTurma(idx, btn) {
+  document.querySelectorAll('#dre-turma-tabs .dre-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  showDreTurmaContent(idx);
+}
+
+function showDreTurmaContent(idx) {
+  const cat   = DRE_FV_PARSED._currentCat || 'fl';
+  const turma = (DRE_FV_PARSED[cat] || [])[idx];
+  const el    = document.getElementById('dre-content');
+  if (!turma || !el) return;
+
+  const mlPctFmt = (turma.margemLiquida * 100).toFixed(2).replace('.', ',') + ' %';
+  const mlColor  = turma.margemLiquida >= 0 ? 'var(--green)' : 'var(--red)';
+
+  let html = `<div style="margin-bottom:14px;display:flex;gap:20px;flex-wrap:wrap">
+    <div class="stat-pill"><div class="sp-label">Turma</div><div class="sp-value" style="font-size:.95rem">${turma.fullName} – ${turma.periodDay}</div></div>
+    <div class="stat-pill"><div class="sp-label">Receita Bruta</div><div class="sp-value" style="color:var(--accent)">${fmt(turma.receitaBruta)}</div></div>
+    <div class="stat-pill"><div class="sp-label">Margem Líquida</div><div class="sp-value" style="color:${mlColor}">${mlPctFmt}</div></div>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th style="width:55%">Descrição</th><th class="td-right">Valor</th><th class="td-right">% Receita</th></tr></thead>
+    <tbody>`;
+
+  turma.rows.forEach(r => {
+    let cls = '';
+    if (r.type === 'subtotal') cls = 'dre-subtotal';
+    else if (r.type === 'total') cls = 'dre-total';
+    else if (r.type === 'header') cls = 'dre-section-header';
+    const valFmt = r.val === 0 ? '—' : fmt(r.val);
+    const valCls = r.val < 0 ? 'dre-negative' : (r.val > 0 && (r.type==='subtotal'||r.type==='header'||r.type==='total') ? 'dre-positive' : '');
+    const pctFmt = turma.receitaBruta ? (r.val / turma.receitaBruta * 100).toFixed(2).replace('.', ',') + ' %' : '—';
+    html += `<tr class="${cls}"><td>${r.label}</td><td class="td-right ${valCls}">${valFmt}</td><td class="td-right" style="color:var(--text-muted)">${pctFmt}</td></tr>`;
+  });
+
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+// ============================================================
+// SORT TABLE
+// ============================================================
+function sortTable(th) {
+  const table = th.closest('table');
+  const col = Array.from(th.parentNode.children).indexOf(th);
+  const key = th.getAttribute('data-col') !== null ? parseInt(th.getAttribute('data-col')) : col;
+  const dir = sortDir[key] = -(sortDir[key] || 1);
+  const tbody = table.querySelector('tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  rows.sort((a, b) => {
+    const av = a.cells[col]?.textContent.trim() || '';
+    const bv = b.cells[col]?.textContent.trim() || '';
+    const an = parseFloat(av.replace(/[R$\.\s]/g, '').replace(',', '.'));
+    const bn = parseFloat(bv.replace(/[R$\.\s]/g, '').replace(',', '.'));
+    if (!isNaN(an) && !isNaN(bn)) return dir * (an - bn);
+    return dir * av.localeCompare(bv, 'pt-BR');
+  });
+  rows.forEach(r => tbody.appendChild(r));
+  th.closest('thead').querySelectorAll('th').forEach(h => h.style.background = '');
+  th.style.background = '#d0eaf4';
+}
+
+// ============================================================
+// RENDER — FORMAÇÕES
+// ============================================================
+function formStatusBadge(s) {
+  if (!s) return '—';
+  const su = s.toUpperCase();
+  if (su === 'PAGO') return '<span class="badge badge-quitado">Pago</span>';
+  if (su.includes('PARCIA')) return '<span class="badge badge-aviso">Parcial</span>';
+  return '<span class="badge badge-pagando">' + s + '</span>';
+}
+
+function _sortDateGviz(s) {
+  const m = String(s||'').match(/^Date\((\d+),(\d+),(\d+)\)/);
+  return m ? +m[1]*10000 + +m[2]*100 + +m[3] : 0;
+}
+
+function renderFormacoes(data) {
+  const total = data.length;
+  setText('form-total', total);
+  // Faturamento set by fetchSheet('CR') — show computed bruto as fallback
+  if (!document.getElementById('form-fat') || document.getElementById('form-fat').innerText === '—') {
+    const bruto = data.reduce((s,d) => s + d.valorBruto, 0);
+    setText('form-fat', fmtCmp(bruto));
+  }
+
+  renderFormacoesTable(data);
+}
+
+function renderFormacoesTable(data) {
+  const tbody = document.getElementById('form-tbody');
+  if (tbody) {
+    const sorted = [...data].sort((a, b) => _sortDateGviz(b.data) - _sortDateGviz(a.data));
+    tbody.innerHTML = sorted.length ? sorted.map(d => `<tr>
+      <td>${d.nome}</td>
+      <td class="td-center">${d.turma}</td>
+      <td class="td-center">${d.tipo || '—'}</td>
+      <td class="td-right">${d.valorBruto ? fmt(d.valorBruto) : '—'}</td>
+      <td class="td-right">${d.desconto ? '-' + fmt(d.desconto) : '—'}</td>
+      <td class="td-right">${d.valorLiq ? fmt(d.valorLiq) : '—'}</td>
+      <td>${d.formaPgto || '—'}</td>
+      <td>${formStatusBadge(d.status)}</td>
+      <td class="td-center">${fmtDateClube(d.data)}</td>
+    </tr>`).join('') : '<tr><td colspan="9" style="text-align:center;color:var(--text-muted)">Sem dados</td></tr>';
+  }
+  setText('form-count', data.length + ' inscrito(s)');
+}
+
+function filterFormacoes() {
+  const q = document.getElementById('form-search').value.toLowerCase();
+  const st = document.getElementById('form-status').value;
+  renderFormacoesTable(FORMACOES_DATA.filter(d =>
+    d.nome.toLowerCase().includes(q) &&
+    (!st || d.status === st)
+  ));
+}
+
+// ============================================================
+// RENDER — CONTAS PAGAS
+// ============================================================
+function renderContas(cp) {
+  CP_DATA = cp;
+
+  // KPIs from Matriz
+  setText('cp-kpi-mes',    fmt(MATRIZ_DATA.totalMes));
+  setText('cp-kpi-mes-sub', MATRIZ_DATA.mesLabel);
+  setText('cp-kpi-geral',  fmt(MATRIZ_DATA.totalGeral));
+  setText('cp-kpi-antec',  fmt(MATRIZ_DATA.totalAntec));
+
+  // Conciliação donut
+  const total = cp.rows.length;
+  const conc  = cp.rows.filter(r => r.situacao === 'Conciliado').length;
+  const nConc = total - conc;
+  mkChart('chartCPConc', {
+    type: 'doughnut',
+    data: { labels: ['Conciliado', 'Não Conciliado'], datasets: [{ data: [conc, nConc], backgroundColor: ['#2a9d5c', '#c0392b'], borderWidth: 1, borderColor: '#fff' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.label + ': ' + ctx.parsed } },
+        datalabels: { display: true, color: '#fff', font: { size: 11, weight: '600' }, formatter: pctLabel }
+      }, cutout: '64%'
+    }
+  });
+
+  // Populate período filter
+  const selP = document.getElementById('cp-periodo');
+  if (selP && selP.options.length <= 1) {
+    const sortedMonths = [...new Set(cp.rows.map(r => r.mesKey).filter(m => m))]
+      .sort((a, b) => {
+        const M = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+        const parse = s => { const [m,y] = s.split('/'); return +('20'+y)*12 + M.indexOf(m); };
+        return parse(a) - parse(b);
+      });
+    sortedMonths.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; selP.appendChild(o); });
+  }
+
+  // Populate categoria filter
+  const cats = [...new Set(cp.rows.map(r => r.categoria).filter(c => c))].sort();
+  const selC = document.getElementById('cp-categoria');
+  if (selC && selC.options.length <= 1) {
+    cats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; selC.appendChild(o); });
+  }
+
+  renderCPCategorias(CP_CATS);
+  renderCPTable(cp.rows);
+}
+
+function renderCPCategorias(cats) {
+  CP_CATS = cats;
+  if (!cats.length) return;
+
+  // Consolidate tax categories into a single "Impostos" bar
+  const TAX_SET = new Set(['IRPJ', 'COFINS', 'CSLL', 'ISS']);
+  let impostoTotal = 0;
+  const other = [];
+  cats.forEach(c => {
+    if (TAX_SET.has(c.categoria.trim())) impostoTotal += c.valor;
+    else other.push({ ...c });
+  });
+  const merged = impostoTotal > 0 ? [...other, { categoria: 'Impostos', valor: impostoTotal }] : [...other];
+  merged.sort((a, b) => b.valor - a.valor);
+  const totalAll = merged.reduce((s, c) => s + c.valor, 0);
+  merged.forEach(c => { c.pctTotal = totalAll ? (c.valor / totalAll * 100).toFixed(1).replace('.', ',') + '%' : ''; });
+
+  const top = merged.slice(0, 7);
+  const CAT_COLORS = ['#1e88a8', '#c98a52'];
+  const labels = top.map(c => {
+    const s = c.categoria;
+    if (/csc/i.test(s)) return 'CSC';
+    return s.length > 28 ? s.slice(0, 26) + '…' : s;
+  });
+  mkChart('chartCPCat', {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Valor Pago',
+        data: top.map(c => c.valor),
+        backgroundColor: top.map((_, i) => CAT_COLORS[i % 2]),
+        borderRadius: 3, borderSkipped: false
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.parsed.x) + ' (' + (top[ctx.dataIndex]?.pctTotal || '') + ')' } },
+        datalabels: {
+          display: true,
+          anchor: 'end', align: 'end',
+          color: '#2c2c2c', font: { size: 10, weight: '700' },
+          formatter: (v, ctx) => {
+            const n = typeof v === 'number' ? v : (+v || 0);
+            const pct = top[ctx.dataIndex]?.pctTotal || '';
+            return Math.trunc(Math.abs(n)).toLocaleString('pt-BR') + '   ' + pct;
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { callback: v => fmtCmp(v) }, grid: { color: '#f1e9dc' }, max: (() => { const mx = Math.max(...top.map(c => c.valor)); return mx * 2.1; })() },
+        y: { grid: { display: false } }
+      },
+      layout: { padding: { right: 10 } }
+    }
+  });
+}
+
+function renderCPTable(rows) {
+  const tbody = document.getElementById('cp-tbody');
+  if (tbody) {
+    tbody.innerHTML = rows.length ? rows.map(r => {
+      const vCls = r.valor < 0 ? 'style="color:var(--red)"' : '';
+      return `<tr>
+        <td>${r.data}</td>
+        <td>${r.fornecedor}</td>
+        <td>${r.categoria}</td>
+        <td>${r.projeto || '—'}</td>
+        <td class="td-right" ${vCls}>${r.valor ? fmt(r.valor) : '—'}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Sem dados</td></tr>';
+  }
+  setText('cp-count', rows.length + ' lançamento(s)');
+}
+
+function filterCP() {
+  const q  = document.getElementById('cp-search').value.toLowerCase();
+  const pe = document.getElementById('cp-periodo').value;
+  const ca = document.getElementById('cp-categoria').value;
+  renderCPTable(CP_DATA.rows.filter(r =>
+    r.fornecedor.toLowerCase().includes(q) &&
+    (!pe || r.mesKey === pe) &&
+    (!ca || r.categoria === ca)
+  ));
+}
+
+// ============================================================
+// RENDER — COMISSÕES
+// ============================================================
+function renderComissoes(data) {
+  COM_DATA = data;
+  const totFab  = data.filter(d => d.vendedor === 'Fabrícia').reduce((s, d) => s + d.total, 0);
+  const totEdu  = data.filter(d => d.vendedor === 'Eduardo').reduce((s, d) => s + d.total, 0);
+  const totGer  = totFab + totEdu;
+  const meses   = [...new Set(data.map(d => d.mes))];
+  const media   = meses.length > 0 ? totGer / meses.length : 0;
+
+  document.getElementById('com-kpis').innerHTML = `
+    <div class="kpi-card blue"><div class="kpi-label">Total Fabrícia</div><div class="kpi-value">${fmtCmp(totFab)}</div><div class="kpi-sub">${meses.length} meses</div></div>
+    <div class="kpi-card orange"><div class="kpi-label">Total Eduardo</div><div class="kpi-value">${fmtCmp(totEdu)}</div><div class="kpi-sub">${meses.length} meses</div></div>
+    <div class="kpi-card red"><div class="kpi-label">Total Geral</div><div class="kpi-value">${fmtCmp(totGer)}</div><div class="kpi-sub">Todos os vendedores</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Média Mensal</div><div class="kpi-value">${fmtCmp(media)}</div><div class="kpi-sub">Por período</div></div>`;
+
+  // Stacked bar chart
+  const fabData = meses.map(m => { const r = data.find(d => d.mes === m && d.vendedor === 'Fabrícia'); return r ? r.total : 0; });
+  const eduData = meses.map(m => { const r = data.find(d => d.mes === m && d.vendedor === 'Eduardo'); return r ? r.total : 0; });
+  mkChart('chartComissoes', {
+    type: 'bar',
+    data: { labels: meses, datasets: [
+      { label: 'Fabrícia', data: fabData, backgroundColor: '#1e88a8', borderRadius: 3 },
+      { label: 'Eduardo',  data: eduData, backgroundColor: '#c98a52', borderRadius: 3 }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + fmt(ctx.parsed.y) } },
+        datalabels: { display: false }
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false } },
+        y: { stacked: true, ticks: { callback: v => fmtCmp(v) }, grid: { color: '#f1e9dc' } }
+      }
+    }
+  });
+
+  // Table
+  const tbody = document.getElementById('com-tbody');
+  if (tbody) {
+    tbody.innerHTML = data.length ? data.map(d => `<tr>
+      <td>${d.mes}</td>
+      <td>${d.vendedor}</td>
+      <td class="td-right">${d.variavel ? fmt(d.variavel) : '—'}</td>
+      <td class="td-right">${d.fixo ? fmt(d.fixo) : '—'}</td>
+      <td class="td-right" style="font-weight:600">${fmt(d.total)}</td>
+    </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Sem dados</td></tr>';
+  }
+
+  const tfoot = document.getElementById('com-tfoot');
+  if (tfoot) {
+    const totVar = data.reduce((s, d) => s + d.variavel, 0);
+    const totFix = data.reduce((s, d) => s + d.fixo, 0);
+    tfoot.innerHTML = `<tr class="tfoot-row"><td>TOTAL</td><td>—</td>
+      <td class="td-right">${fmt(totVar)}</td>
+      <td class="td-right">${fmt(totFix)}</td>
+      <td class="td-right">${fmt(totGer)}</td></tr>`;
+  }
+}
+
+// ============================================================
+// RENDER — FOLHA
+// ============================================================
+function renderFolha(folha) {
+  FOLHA_DATA = folha;
+  const hc = folha.headcount;
+  const total = hc.total || folha.employees.length;
+  const clt   = hc.clt || folha.employees.filter(e => e.vinculo.toUpperCase() === 'CLT').length;
+  const pj    = hc.pj  || folha.employees.filter(e => e.vinculo.toUpperCase() === 'PJ').length;
+  const tot   = folha.totalGeral || hc.totalFolha;
+
+  document.getElementById('folha-kpis').innerHTML = `
+    <div class="kpi-card blue"><div class="kpi-label">Total Colaboradores</div><div class="kpi-value">${total}</div><div class="kpi-sub">Headcount total</div></div>
+    <div class="kpi-card green"><div class="kpi-label">CLT</div><div class="kpi-value">${clt}</div><div class="kpi-sub">${fmtCmp(folha.totalCLT)} em folha</div></div>
+    <div class="kpi-card orange"><div class="kpi-label">PJ</div><div class="kpi-value">${pj}</div><div class="kpi-sub">${fmtCmp(folha.totalPJ)} em folha</div></div>
+    <div class="kpi-card red"><div class="kpi-label">Total Folha</div><div class="kpi-value">${fmtCmp(tot)}</div><div class="kpi-sub">Custo mensal total</div></div>`;
+
+  // Charts
+  mkChart('chartFolhaVinculo', {
+    type: 'doughnut',
+    data: { labels: ['CLT', 'PJ'], datasets: [{ data: [folha.totalCLT || 1, folha.totalPJ || 1], backgroundColor: ['#1e88a8','#2a9d5c'], borderWidth: 1, borderColor: '#fff' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 14, font: { size: 12 } } },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.label + ': ' + fmt(ctx.parsed) } },
+        datalabels: { display: true, color: '#fff', font: { size: 11, weight: '600' }, formatter: pctLabel }
+      }, cutout: '62%'
+    }
+  });
+
+  // Area bar chart
+  const areaMap = {};
+  folha.employees.forEach(e => { areaMap[e.area] = (areaMap[e.area] || 0) + e.total; });
+  const aLabels = Object.keys(areaMap).filter(a => a).sort((a, b) => areaMap[b] - areaMap[a]);
+  mkChart('chartFolhaArea', {
+    type: 'bar',
+    data: { labels: aLabels, datasets: [{ label: 'Custo Total', data: aLabels.map(a => areaMap[a]), backgroundColor: PAL, borderRadius: 4, borderSkipped: false }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.parsed.x) } },
+        datalabels: { display: true, anchor: 'end', align: 'end', color: '#3a2e26', font: { size: 10, weight: '600' }, formatter: v => fmtCmp(v) }
+      },
+      scales: {
+        x: { ticks: { callback: v => fmtCmp(v) }, grid: { color: '#f1e9dc' } },
+        y: { grid: { display: false } }
+      },
+      layout: { padding: { right: 80 } }
+    }
+  });
+
+  // Table
+  const tbody = document.getElementById('folha-tbody');
+  if (tbody) {
+    tbody.innerHTML = folha.employees.length ? folha.employees.map(e => `<tr>
+      <td>${e.nome}</td>
+      <td><span class="badge ${e.vinculo.toUpperCase()==='CLT' ? 'badge-pagando' : 'badge-quitado'}">${e.vinculo}</span></td>
+      <td>${e.area || '—'}</td>
+      <td class="td-right">${e.salario ? fmt(e.salario) : '—'}</td>
+      <td class="td-right">${e.encargos ? fmt(e.encargos) : '—'}</td>
+      <td class="td-right">${e.beneficios ? fmt(e.beneficios) : '—'}</td>
+      <td class="td-right" style="font-weight:600">${e.total ? fmt(e.total) : '—'}</td>
+    </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--text-muted)">Sem dados</td></tr>';
+  }
+
+  const tfoot = document.getElementById('folha-tfoot');
+  if (tfoot && tot) {
+    const totalSal = folha.employees.reduce((s, e) => s + e.salario, 0);
+    const totalEnc = folha.employees.reduce((s, e) => s + e.encargos, 0);
+    const totalBen = folha.employees.reduce((s, e) => s + e.beneficios, 0);
+    tfoot.innerHTML = `<tr class="tfoot-row">
+      <td>TOTAL FOLHA</td><td>—</td><td>—</td>
+      <td class="td-right">${fmt(totalSal)}</td>
+      <td class="td-right">${fmt(totalEnc)}</td>
+      <td class="td-right">${fmt(totalBen)}</td>
+      <td class="td-right">${fmt(tot)}</td></tr>`;
+  }
+}
+
+// ============================================================
+// LOAD ALL
+// ============================================================
+function loadAll() {
+  fetchSheet('Resumo', rows => renderResumo(rows));
+
+  fetchSheet('Partners Ouro', raw => {
+    CLUBE_DATA = parseClube(raw);
+    renderClube(CLUBE_DATA);
+    renderClubeStats();
+    renderClubeCharts();
+    renderInadim();
+    setText('inad-count', CLUBE_DATA.filter(r => r[8] === 'INADIMPLENTE').length || '—');
+  });
+
+  fetchSheet('FC', raw => {
+    const fc = parseFC(raw);
+    renderFCKPIs(fc);
+    renderFCTable(fc);
+    renderFCCharts(fc);
+  });
+
+  fetchSheet('Formações', raw => {
+    FORMACOES_DATA = parseFormacoes(raw);
+    renderFormacoes(FORMACOES_DATA);
+  });
+
+  fetchSheet('Resumo', raw => {
+    // Formações row in Carteira section — col2 = faturamento bruto
+    for (let i = 0; i < raw.length; i++) {
+      if (String(raw[i][0]||'').toUpperCase().includes('FORMA')) {
+        const fat = parseBRL(String(raw[i][2]||''));
+        if (fat > 0) { setText('form-fat', fmtCmp(fat)); break; }
+      }
+    }
+  });
+
+  let _cpDone = false, _mzDone = false;
+  function tryRenderContas() {
+    if (_cpDone && _mzDone) renderContas(CP_DATA);
+  }
+
+  fetchSheet('CP', raw => {
+    CP_DATA = parseCP(raw);
+    _cpDone = true;
+    tryRenderContas();
+  });
+
+  fetchSheet('Matriz', raw => {
+    MATRIZ_DATA = parseMatriz(raw);
+    _mzDone = true;
+    tryRenderContas();
+  });
+
+  fetchSheet('CP.categorias', raw => {
+    const cats = parseCPCategorias(raw);
+    renderCPCategorias(cats);
+  });
+
+  fetchSheet('Comissões', raw => {
+    const com = parseComissoes(raw);
+    renderComissoes(com);
+  });
+
+  fetchSheet('Folha', raw => {
+    const folha = parseFolha(raw);
+    renderFolha(folha);
+  });
+
+  let _dreFlDone = false, _dreFvDone = false;
+  fetchSheet('DRE FL', raw => {
+    DRE_FV_PARSED.fl = parseDreSheet(raw, [3, 6], 'fl');
+    _dreFlDone = true;
+    if (_dreFvDone) renderDreTurmaButtons();
+  });
+  fetchSheet('DRE FV', raw => {
+    DRE_FV_PARSED.fv = parseDreSheet(raw, [4, 7, 10, 13], 'fv');
+    _dreFvDone = true;
+    if (_dreFlDone) renderDreTurmaButtons();
+  });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+loadAll();
+setInterval(loadAll, 5 * 60 * 1000);
+</script>
+</body>
+</html>
