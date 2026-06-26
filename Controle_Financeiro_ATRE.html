@@ -438,8 +438,6 @@ tr:last-child td { border-bottom: none; }
     <section class="page" id="page-contas">
       <div id="cp-kpis" class="kpi-grid">
         <div class="kpi-card red"><div class="kpi-label">Total Pago (Mês)</div><div class="kpi-value" id="cp-kpi-mes">—</div><div class="kpi-sub" id="cp-kpi-mes-sub">Mês atual</div></div>
-        <div class="kpi-card orange"><div class="kpi-label">Total Pago Geral</div><div class="kpi-value" id="cp-kpi-geral">—</div><div class="kpi-sub">Conta Paga</div></div>
-        <div class="kpi-card blue"><div class="kpi-label">Antecipação de Resultados</div><div class="kpi-value" id="cp-kpi-antec">—</div><div class="kpi-sub">Conta Paga + Débito CC</div></div>
       </div>
       <div class="grid-2-1">
         <div class="card">
@@ -1965,8 +1963,6 @@ function renderContas(cp) {
   // KPIs from Matriz
   setText('cp-kpi-mes',    fmt(MATRIZ_DATA.totalMes));
   setText('cp-kpi-mes-sub', MATRIZ_DATA.mesLabel);
-  setText('cp-kpi-geral',  fmt(MATRIZ_DATA.totalGeral));
-  setText('cp-kpi-antec',  fmt(MATRIZ_DATA.totalAntec));
 
   // Conciliação donut
   const total = cp.rows.length;
