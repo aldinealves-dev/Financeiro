@@ -175,8 +175,6 @@ tr:last-child td { border-bottom: none; }
     <div class="nav-item" onclick="showPage('dre',this)"><span class="icon">📋</span> DRE Formações</div>
     <div class="nav-section">Despesas</div>
     <div class="nav-item" onclick="showPage('contas',this)"><span class="icon">💸</span> Contas Pagas</div>
-    <div class="nav-item" onclick="showPage('comissoes',this)"><span class="icon">🤝</span> Comissões</div>
-    <div class="nav-item" onclick="showPage('folha',this)"><span class="icon">👔</span> Folha</div>
   </nav>
   <div class="sidebar-footer">
     <p id="sidebar-periodo">Referência: —</p>
@@ -476,73 +474,6 @@ tr:last-child td { border-bottom: none; }
       </div>
     </section>
 
-    <!-- COMISSÕES -->
-    <section class="page" id="page-comissoes">
-      <div id="com-kpis" class="kpi-grid">
-        <div class="kpi-card blue"><div class="kpi-label">Total Fabrícia</div><div class="kpi-value">—</div><div class="kpi-sub">Carregando...</div></div>
-        <div class="kpi-card orange"><div class="kpi-label">Total Eduardo</div><div class="kpi-value">—</div><div class="kpi-sub">Carregando...</div></div>
-        <div class="kpi-card red"><div class="kpi-label">Total Geral</div><div class="kpi-value">—</div><div class="kpi-sub">Todos os vendedores</div></div>
-        <div class="kpi-card green"><div class="kpi-label">Média Mensal</div><div class="kpi-value">—</div><div class="kpi-sub">Por período</div></div>
-      </div>
-      <div class="card" style="margin-bottom:24px">
-        <div class="card-title"><span class="icon">📊</span> Comissões por Mês e Vendedor</div>
-        <div class="chart-wrap-lg"><canvas id="chartComissoes"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-title"><span class="icon">🤝</span> Detalhamento de Comissões</div>
-        <div class="table-wrap">
-          <table id="com-table">
-            <thead><tr>
-              <th onclick="sortTable(this)">Mês</th>
-              <th onclick="sortTable(this)">Vendedor</th>
-              <th onclick="sortTable(this)" class="td-right">Variável</th>
-              <th onclick="sortTable(this)" class="td-right">Fixo/Garantido</th>
-              <th onclick="sortTable(this)" class="td-right">Total</th>
-            </tr></thead>
-            <tbody id="com-tbody"><tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr></tbody>
-            <tfoot id="com-tfoot"></tfoot>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- FOLHA -->
-    <section class="page" id="page-folha">
-      <div id="folha-kpis" class="kpi-grid">
-        <div class="kpi-card blue"><div class="kpi-label">Total Colaboradores</div><div class="kpi-value">—</div><div class="kpi-sub">Carregando...</div></div>
-        <div class="kpi-card green"><div class="kpi-label">CLT</div><div class="kpi-value">—</div><div class="kpi-sub">Regime CLT</div></div>
-        <div class="kpi-card orange"><div class="kpi-label">PJ</div><div class="kpi-value">—</div><div class="kpi-sub">Pessoa Jurídica</div></div>
-        <div class="kpi-card red"><div class="kpi-label">Total Folha</div><div class="kpi-value">—</div><div class="kpi-sub">Custo mensal total</div></div>
-      </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title"><span class="icon">📊</span> Custo por Vínculo</div>
-          <div class="chart-wrap"><canvas id="chartFolhaVinculo"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="card-title"><span class="icon">🏢</span> Custo por Área</div>
-          <div class="chart-wrap"><canvas id="chartFolhaArea"></canvas></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title"><span class="icon">👔</span> Colaboradores</div>
-        <div class="table-wrap">
-          <table id="folha-table">
-            <thead><tr>
-              <th onclick="sortTable(this)">Nome</th>
-              <th onclick="sortTable(this)">Vínculo</th>
-              <th onclick="sortTable(this)">Área</th>
-              <th onclick="sortTable(this)" class="td-right">Salário</th>
-              <th onclick="sortTable(this)" class="td-right">Encargos</th>
-              <th onclick="sortTable(this)" class="td-right">Benefícios</th>
-              <th onclick="sortTable(this)" class="td-right">Total</th>
-            </tr></thead>
-            <tbody id="folha-tbody"><tr><td colspan="7" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr></tbody>
-            <tfoot id="folha-tfoot"></tfoot>
-          </table>
-        </div>
-      </div>
-    </section>
 
     <!-- DRE -->
     <section class="page" id="page-dre">
@@ -656,8 +587,6 @@ let FORMACOES_DATA = [];
 let CP_DATA = { rows: [] };
 let MATRIZ_DATA = { totalMes: 0, totalGeral: 0, totalAntec: 0, mesLabel: '—' };
 let CP_CATS = [];
-let COM_DATA = [];
-let FOLHA_DATA = { employees: [], totalCLT: 0, totalPJ: 0, totalGeral: 0, headcount: {} };
 
 // ============================================================
 // HELPERS
@@ -1056,68 +985,6 @@ function parseCPCategorias(raw) {
   return out.sort((a, b) => b.valor - a.valor);
 }
 
-// ============================================================
-// PARSING — Comissões
-// ============================================================
-function parseComissoes(raw) {
-  const out = [];
-  let curMes = '';
-  for (let i = 0; i < raw.length; i++) {
-    const r = raw[i];
-    const col0 = String(r[0] || '').trim();
-    const col1 = String(r[1] || '').trim();
-    if (col0.match(/^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)/i)) curMes = col0;
-    if (!curMes) continue;
-    const vendedor = col1.match(/fabr/i) ? 'Fabrícia' : col1.match(/eduar/i) ? 'Eduardo' : '';
-    if (!vendedor) continue;
-    const variavel = Math.abs(parseBRL(r[5] || '0'));
-    const fixo     = Math.abs(parseBRL(r[8] || '0'));
-    const total    = Math.abs(parseBRL(r[11] || '0')) || variavel + fixo;
-    out.push({ mes: curMes, vendedor, variavel, fixo, total });
-  }
-  return out;
-}
-
-// ============================================================
-// PARSING — Folha
-// ============================================================
-function parseFolha(raw) {
-  // Row index 2 has headcount summary
-  let headcount = { total: 0, clt: 0, pj: 0, totalFolha: 0 };
-  const r2 = raw[2] || [];
-  headcount.total     = parseInt(r2[0]) || 0;
-  headcount.clt       = parseInt(r2[2]) || 0;
-  headcount.pj        = parseInt(r2[4]) || 0;
-  headcount.totalFolha = parseBRL(r2[6] || '');
-
-  const employees = [];
-  let totalCLT = 0, totalPJ = 0, totalGeral = 0;
-  for (let i = 6; i < raw.length; i++) {
-    const r = raw[i];
-    const nome = String(r[0] || '').trim();
-    if (!nome) continue;
-    const up = nome.toUpperCase();
-    if (up.includes('SUBTOTAL') || up.includes('TOTAL') || up.includes('NOTA') || up.includes('OBS')) {
-      if (up.includes('CLT')) totalCLT = parseBRL(r[6] || '');
-      else if (up.includes('PJ'))  totalPJ  = parseBRL(r[6] || '');
-      else if (up.includes('TOTAL GERAL') || up === 'TOTAL') totalGeral = parseBRL(r[6] || '');
-      continue;
-    }
-    const vinculo = String(r[1] || '').trim();
-    if (!vinculo) continue;
-    employees.push({
-      nome,
-      vinculo,
-      area:       r[2] || '',
-      salario:    parseBRL(r[3] || '0'),
-      encargos:   parseBRL(r[4] || '0'),
-      beneficios: parseBRL(r[5] || '0'),
-      total:      parseBRL(r[6] || '0')
-    });
-  }
-  if (!totalGeral) totalGeral = totalCLT + totalPJ;
-  return { employees, totalCLT, totalPJ, totalGeral, headcount };
-}
 
 // ============================================================
 // RENDER — RESUMO
@@ -2092,149 +1959,6 @@ function filterCP() {
   ));
 }
 
-// ============================================================
-// RENDER — COMISSÕES
-// ============================================================
-function renderComissoes(data) {
-  COM_DATA = data;
-  const totFab  = data.filter(d => d.vendedor === 'Fabrícia').reduce((s, d) => s + d.total, 0);
-  const totEdu  = data.filter(d => d.vendedor === 'Eduardo').reduce((s, d) => s + d.total, 0);
-  const totGer  = totFab + totEdu;
-  const meses   = [...new Set(data.map(d => d.mes))];
-  const media   = meses.length > 0 ? totGer / meses.length : 0;
-
-  document.getElementById('com-kpis').innerHTML = `
-    <div class="kpi-card blue"><div class="kpi-label">Total Fabrícia</div><div class="kpi-value">${fmtCmp(totFab)}</div><div class="kpi-sub">${meses.length} meses</div></div>
-    <div class="kpi-card orange"><div class="kpi-label">Total Eduardo</div><div class="kpi-value">${fmtCmp(totEdu)}</div><div class="kpi-sub">${meses.length} meses</div></div>
-    <div class="kpi-card red"><div class="kpi-label">Total Geral</div><div class="kpi-value">${fmtCmp(totGer)}</div><div class="kpi-sub">Todos os vendedores</div></div>
-    <div class="kpi-card green"><div class="kpi-label">Média Mensal</div><div class="kpi-value">${fmtCmp(media)}</div><div class="kpi-sub">Por período</div></div>`;
-
-  // Stacked bar chart
-  const fabData = meses.map(m => { const r = data.find(d => d.mes === m && d.vendedor === 'Fabrícia'); return r ? r.total : 0; });
-  const eduData = meses.map(m => { const r = data.find(d => d.mes === m && d.vendedor === 'Eduardo'); return r ? r.total : 0; });
-  mkChart('chartComissoes', {
-    type: 'bar',
-    data: { labels: meses, datasets: [
-      { label: 'Fabrícia', data: fabData, backgroundColor: '#1e88a8', borderRadius: 3 },
-      { label: 'Eduardo',  data: eduData, backgroundColor: '#c98a52', borderRadius: 3 }
-    ]},
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'top' },
-        tooltip: { callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + fmt(ctx.parsed.y) } },
-        datalabels: { display: false }
-      },
-      scales: {
-        x: { stacked: true, grid: { display: false } },
-        y: { stacked: true, ticks: { callback: v => fmtCmp(v) }, grid: { color: '#f1e9dc' } }
-      }
-    }
-  });
-
-  // Table
-  const tbody = document.getElementById('com-tbody');
-  if (tbody) {
-    tbody.innerHTML = data.length ? data.map(d => `<tr>
-      <td>${d.mes}</td>
-      <td>${d.vendedor}</td>
-      <td class="td-right">${d.variavel ? fmt(d.variavel) : '—'}</td>
-      <td class="td-right">${d.fixo ? fmt(d.fixo) : '—'}</td>
-      <td class="td-right" style="font-weight:600">${fmt(d.total)}</td>
-    </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Sem dados</td></tr>';
-  }
-
-  const tfoot = document.getElementById('com-tfoot');
-  if (tfoot) {
-    const totVar = data.reduce((s, d) => s + d.variavel, 0);
-    const totFix = data.reduce((s, d) => s + d.fixo, 0);
-    tfoot.innerHTML = `<tr class="tfoot-row"><td>TOTAL</td><td>—</td>
-      <td class="td-right">${fmt(totVar)}</td>
-      <td class="td-right">${fmt(totFix)}</td>
-      <td class="td-right">${fmt(totGer)}</td></tr>`;
-  }
-}
-
-// ============================================================
-// RENDER — FOLHA
-// ============================================================
-function renderFolha(folha) {
-  FOLHA_DATA = folha;
-  const hc = folha.headcount;
-  const total = hc.total || folha.employees.length;
-  const clt   = hc.clt || folha.employees.filter(e => e.vinculo.toUpperCase() === 'CLT').length;
-  const pj    = hc.pj  || folha.employees.filter(e => e.vinculo.toUpperCase() === 'PJ').length;
-  const tot   = folha.totalGeral || hc.totalFolha;
-
-  document.getElementById('folha-kpis').innerHTML = `
-    <div class="kpi-card blue"><div class="kpi-label">Total Colaboradores</div><div class="kpi-value">${total}</div><div class="kpi-sub">Headcount total</div></div>
-    <div class="kpi-card green"><div class="kpi-label">CLT</div><div class="kpi-value">${clt}</div><div class="kpi-sub">${fmtCmp(folha.totalCLT)} em folha</div></div>
-    <div class="kpi-card orange"><div class="kpi-label">PJ</div><div class="kpi-value">${pj}</div><div class="kpi-sub">${fmtCmp(folha.totalPJ)} em folha</div></div>
-    <div class="kpi-card red"><div class="kpi-label">Total Folha</div><div class="kpi-value">${fmtCmp(tot)}</div><div class="kpi-sub">Custo mensal total</div></div>`;
-
-  // Charts
-  mkChart('chartFolhaVinculo', {
-    type: 'doughnut',
-    data: { labels: ['CLT', 'PJ'], datasets: [{ data: [folha.totalCLT || 1, folha.totalPJ || 1], backgroundColor: ['#1e88a8','#2a9d5c'], borderWidth: 1, borderColor: '#fff' }] },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'bottom', labels: { padding: 14, font: { size: 12 } } },
-        tooltip: { callbacks: { label: ctx => ' ' + ctx.label + ': ' + fmt(ctx.parsed) } },
-        datalabels: { display: true, color: '#fff', font: { size: 11, weight: '600' }, formatter: pctLabel }
-      }, cutout: '62%'
-    }
-  });
-
-  // Area bar chart
-  const areaMap = {};
-  folha.employees.forEach(e => { areaMap[e.area] = (areaMap[e.area] || 0) + e.total; });
-  const aLabels = Object.keys(areaMap).filter(a => a).sort((a, b) => areaMap[b] - areaMap[a]);
-  mkChart('chartFolhaArea', {
-    type: 'bar',
-    data: { labels: aLabels, datasets: [{ label: 'Custo Total', data: aLabels.map(a => areaMap[a]), backgroundColor: PAL, borderRadius: 4, borderSkipped: false }] },
-    options: {
-      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.parsed.x) } },
-        datalabels: { display: true, anchor: 'end', align: 'end', color: '#3a2e26', font: { size: 10, weight: '600' }, formatter: v => fmtCmp(v) }
-      },
-      scales: {
-        x: { ticks: { callback: v => fmtCmp(v) }, grid: { color: '#f1e9dc' } },
-        y: { grid: { display: false } }
-      },
-      layout: { padding: { right: 80 } }
-    }
-  });
-
-  // Table
-  const tbody = document.getElementById('folha-tbody');
-  if (tbody) {
-    tbody.innerHTML = folha.employees.length ? folha.employees.map(e => `<tr>
-      <td>${e.nome}</td>
-      <td><span class="badge ${e.vinculo.toUpperCase()==='CLT' ? 'badge-pagando' : 'badge-quitado'}">${e.vinculo}</span></td>
-      <td>${e.area || '—'}</td>
-      <td class="td-right">${e.salario ? fmt(e.salario) : '—'}</td>
-      <td class="td-right">${e.encargos ? fmt(e.encargos) : '—'}</td>
-      <td class="td-right">${e.beneficios ? fmt(e.beneficios) : '—'}</td>
-      <td class="td-right" style="font-weight:600">${e.total ? fmt(e.total) : '—'}</td>
-    </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--text-muted)">Sem dados</td></tr>';
-  }
-
-  const tfoot = document.getElementById('folha-tfoot');
-  if (tfoot && tot) {
-    const totalSal = folha.employees.reduce((s, e) => s + e.salario, 0);
-    const totalEnc = folha.employees.reduce((s, e) => s + e.encargos, 0);
-    const totalBen = folha.employees.reduce((s, e) => s + e.beneficios, 0);
-    tfoot.innerHTML = `<tr class="tfoot-row">
-      <td>TOTAL FOLHA</td><td>—</td><td>—</td>
-      <td class="td-right">${fmt(totalSal)}</td>
-      <td class="td-right">${fmt(totalEnc)}</td>
-      <td class="td-right">${fmt(totalBen)}</td>
-      <td class="td-right">${fmt(tot)}</td></tr>`;
-  }
-}
 
 // ============================================================
 // LOAD ALL
@@ -2295,15 +2019,6 @@ function loadAll() {
     renderCPCategorias(cats);
   });
 
-  fetchSheet('Comissões', raw => {
-    const com = parseComissoes(raw);
-    renderComissoes(com);
-  });
-
-  fetchSheet('Folha', raw => {
-    const folha = parseFolha(raw);
-    renderFolha(folha);
-  });
 
   let _dreFlDone = false, _dreFvDone = false;
   fetchSheet('DRE FL', raw => {
