@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/Controle_Financeiro_ATRE.html" }
+  ]
+}
