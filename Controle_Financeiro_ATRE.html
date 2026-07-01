@@ -437,18 +437,17 @@ tr:last-child td { border-bottom: none; }
       <div id="cp-kpis" class="kpi-grid">
         <div class="kpi-card red"><div class="kpi-label">Total Pago (Mês)</div><div class="kpi-value" id="cp-kpi-mes">—</div><div class="kpi-sub" id="cp-kpi-mes-sub">Mês atual</div></div>
       </div>
-      <div class="grid-2-1">
-        <div class="card">
-          <div class="card-title"><span class="icon">📊</span> Top Categorias de Despesa</div>
-          <div class="chart-wrap-lg"><canvas id="chartCPCat"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="card-title"><span class="icon">🍩</span> Conciliação</div>
-          <div class="chart-wrap"><canvas id="chartCPConc"></canvas></div>
-        </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">📊</span> Top Categorias de Despesa</div>
+        <div class="chart-wrap-lg"><canvas id="chartCPCat"></canvas></div>
       </div>
       <div class="card">
         <div class="card-title"><span class="icon">💸</span> Contas Pagas – Transações</div>
+        <div class="dre-cat-tabs" id="cp-ano-tabs">
+          <button class="dre-cat-tab" onclick="setCPAno('2025',this)">2025</button>
+          <button class="dre-cat-tab" onclick="setCPAno('2026',this)">2026</button>
+          <button class="dre-cat-tab active" onclick="setCPAno('',this)">Todos</button>
+        </div>
         <div class="filters">
           <input type="text" id="cp-search" placeholder="🔍  Buscar por fornecedor..." oninput="filterCP()">
           <select id="cp-periodo" onchange="filterCP()">
@@ -931,6 +930,7 @@ function parseCP(raw) {
       data:       parseCPDate(r[1]),
       dataSortKey:parseCPSortKey(r[1]),
       mesKey:     parseCPMonthKey(r[1]),
+      ano:        (String(r[1]||'').match(/Date\((\d+),/) || [])[1] || '',
       fornecedor: r[2]  || '',
       categoria:  r[4]  || '',
       projeto:    r[17] || '',
@@ -1831,23 +1831,6 @@ function renderContas(cp) {
   setText('cp-kpi-mes',    fmt(MATRIZ_DATA.totalMes));
   setText('cp-kpi-mes-sub', MATRIZ_DATA.mesLabel);
 
-  // Conciliação donut
-  const total = cp.rows.length;
-  const conc  = cp.rows.filter(r => r.situacao === 'Conciliado').length;
-  const nConc = total - conc;
-  mkChart('chartCPConc', {
-    type: 'doughnut',
-    data: { labels: ['Conciliado', 'Não Conciliado'], datasets: [{ data: [conc, nConc], backgroundColor: ['#2a9d5c', '#c0392b'], borderWidth: 1, borderColor: '#fff' }] },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } },
-        tooltip: { callbacks: { label: ctx => ' ' + ctx.label + ': ' + ctx.parsed } },
-        datalabels: { display: true, color: '#fff', font: { size: 11, weight: '600' }, formatter: pctLabel }
-      }, cutout: '64%'
-    }
-  });
-
   // Populate período filter
   const selP = document.getElementById('cp-periodo');
   if (selP && selP.options.length <= 1) {
@@ -1948,6 +1931,14 @@ function renderCPTable(rows) {
   setText('cp-count', rows.length + ' lançamento(s)');
 }
 
+let CP_ANO_FILTER = '';
+function setCPAno(ano, btn) {
+  CP_ANO_FILTER = ano;
+  document.querySelectorAll('#cp-ano-tabs .dre-cat-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterCP();
+}
+
 function filterCP() {
   const q  = document.getElementById('cp-search').value.toLowerCase();
   const pe = document.getElementById('cp-periodo').value;
@@ -1955,7 +1946,8 @@ function filterCP() {
   renderCPTable(CP_DATA.rows.filter(r =>
     r.fornecedor.toLowerCase().includes(q) &&
     (!pe || r.mesKey === pe) &&
-    (!ca || r.categoria === ca)
+    (!ca || r.categoria === ca) &&
+    (!CP_ANO_FILTER || r.ano === CP_ANO_FILTER)
   ));
 }
 
