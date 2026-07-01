@@ -435,7 +435,9 @@ tr:last-child td { border-bottom: none; }
     <!-- CONTAS PAGAS -->
     <section class="page" id="page-contas">
       <div id="cp-kpis" class="kpi-grid">
-        <div class="kpi-card red"><div class="kpi-label">Total Pago (Mês)</div><div class="kpi-value" id="cp-kpi-mes">—</div><div class="kpi-sub" id="cp-kpi-mes-sub">Mês atual</div></div>
+        <div class="kpi-card red"><div class="kpi-label">Total Pago no Mês</div><div class="kpi-value" id="cp-kpi-mes">—</div><div class="kpi-sub" id="cp-kpi-mes-sub">Mês atual</div></div>
+        <div class="kpi-card orange"><div class="kpi-label">Total Pago no Ano</div><div class="kpi-value" id="cp-kpi-ano">—</div><div class="kpi-sub" id="cp-kpi-ano-sub">Ano atual</div></div>
+        <div class="kpi-card blue"><div class="kpi-label">Total Pago Geral</div><div class="kpi-value" id="cp-kpi-geral">—</div><div class="kpi-sub">Histórico total</div></div>
       </div>
       <div class="card">
         <div class="card-title"><span class="icon">📊</span> Top Categorias de Despesa</div>
@@ -590,7 +592,7 @@ let _inadimData = { topRows: [], totalRow: [], pct: '—' };
 let _periodo = '';
 let FORMACOES_DATA = [];
 let CP_DATA = { rows: [] };
-let MATRIZ_DATA = { totalMes: 0, totalGeral: 0, totalAntec: 0, mesLabel: '—', rows: [], periods: [] };
+let MATRIZ_DATA = { totalMes: 0, totalAno: 0, totalGeral: 0, totalAntec: 0, mesLabel: '—', rows: [], periods: [] };
 let CP_CATS = [];
 
 // ============================================================
@@ -955,6 +957,7 @@ function parseMatriz(raw) {
   const curY = today.getFullYear(), curM = today.getMonth();
   let totalMes = 0, totalGeral = 0, totalAntec = 0;
   const M = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  let totalAno = 0;
   const rows = [];
   const periodSet = new Set();
   for (let i = 1; i < raw.length; i++) {
@@ -967,7 +970,10 @@ function parseMatriz(raw) {
     if (origem === 'Conta Paga' && !isDevolucao) {
       totalGeral += val;
       const dm = String(r[1]||'').match(/Date\((\d+),(\d+)/);
-      if (dm && +dm[1] === curY && +dm[2] === curM) totalMes += val;
+      if (dm && +dm[1] === curY) {
+        totalAno += val;
+        if (+dm[2] === curM) totalMes += val;
+      }
       const periodoW = String(r[22] || '').trim();
       if (periodoW) periodSet.add(periodoW);
       const dm3 = String(r[1]||'').match(/Date\((\d+),(\d+),(\d+)\)/);
@@ -1000,7 +1006,7 @@ function parseMatriz(raw) {
     }
     return a.localeCompare(b);
   });
-  return { totalMes, totalGeral, totalAntec, mesLabel, rows, periods: sortedPeriods };
+  return { totalMes, totalAno, totalGeral, totalAntec, mesLabel, rows, periods: sortedPeriods };
 }
 
 // ============================================================
@@ -1860,8 +1866,11 @@ function filterFormacoes() {
 // ============================================================
 function renderContas() {
   // KPIs from Matriz
-  setText('cp-kpi-mes',    fmt(MATRIZ_DATA.totalMes));
+  setText('cp-kpi-mes',     fmt(MATRIZ_DATA.totalMes));
   setText('cp-kpi-mes-sub', MATRIZ_DATA.mesLabel);
+  setText('cp-kpi-ano',     fmt(MATRIZ_DATA.totalAno));
+  setText('cp-kpi-ano-sub', 'Ano ' + new Date().getFullYear());
+  setText('cp-kpi-geral',   fmt(MATRIZ_DATA.totalGeral));
 
   // Populate período filter from col W of Matriz
   const selP = document.getElementById('cp-periodo');
