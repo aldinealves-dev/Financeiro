@@ -458,6 +458,12 @@ tr:last-child td { border-bottom: none; }
           </select>
           <span class="filter-count" id="cp-count"></span>
         </div>
+        <div id="cp-range-picker" style="display:none; align-items:center; gap:10px; margin-top:8px; flex-wrap:wrap;">
+          <span style="font-size:13px; color:var(--text-muted)">De:</span>
+          <input type="date" id="cp-date-de" onchange="filterCP()" style="padding:5px 8px; border:1px solid #d1c5b4; border-radius:6px; font-size:13px; color:var(--text-main); background:var(--surface);">
+          <span style="font-size:13px; color:var(--text-muted)">Até:</span>
+          <input type="date" id="cp-date-ate" onchange="filterCP()" style="padding:5px 8px; border:1px solid #d1c5b4; border-radius:6px; font-size:13px; color:var(--text-main); background:var(--surface);">
+        </div>
         <div class="table-wrap">
           <table id="cp-table">
             <thead><tr>
@@ -584,7 +590,7 @@ let _inadimData = { topRows: [], totalRow: [], pct: '—' };
 let _periodo = '';
 let FORMACOES_DATA = [];
 let CP_DATA = { rows: [] };
-let MATRIZ_DATA = { totalMes: 0, totalGeral: 0, totalAntec: 0, mesLabel: '—' };
+let MATRIZ_DATA = { totalMes: 0, totalGeral: 0, totalAntec: 0, mesLabel: '—', rows: [], periods: [] };
 let CP_CATS = [];
 
 // ============================================================
@@ -949,24 +955,52 @@ function parseMatriz(raw) {
   const curY = today.getFullYear(), curM = today.getMonth();
   let totalMes = 0, totalGeral = 0, totalAntec = 0;
   const M = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const rows = [];
+  const periodSet = new Set();
   for (let i = 1; i < raw.length; i++) {
     const r = raw[i];
-    const origem = String(r[14] || '').trim();
-    const categ  = String(r[4]  || '').trim();
-    const val    = Math.abs(parseBRL(r[5] || '0'));
+    const origem  = String(r[14] || '').trim();
+    const categ   = String(r[4]  || '').trim();
+    const val     = Math.abs(parseBRL(r[5] || '0'));
     if (!val) continue;
     const isDevolucao = categ === 'Devoluções de Vendas de Serviços Prestados';
     if (origem === 'Conta Paga' && !isDevolucao) {
       totalGeral += val;
       const dm = String(r[1]||'').match(/Date\((\d+),(\d+)/);
       if (dm && +dm[1] === curY && +dm[2] === curM) totalMes += val;
+      const periodoW = String(r[22] || '').trim();
+      if (periodoW) periodSet.add(periodoW);
+      const dm3 = String(r[1]||'').match(/Date\((\d+),(\d+),(\d+)\)/);
+      const dateISO = dm3 ? `${dm3[1]}-${String(+dm3[2]+1).padStart(2,'0')}-${String(+dm3[3]).padStart(2,'0')}` : '';
+      rows.push({
+        data:        parseCPDate(r[1]),
+        dataSortKey: parseCPSortKey(r[1]),
+        dateISO:     dateISO,
+        mesKey:      parseCPMonthKey(r[1]),
+        periodoW:    periodoW,
+        ano:         (dm || [])[1] || '',
+        fornecedor:  String(r[2] || '').trim(),
+        categoria:   categ,
+        projeto:     String(r[17] || '').trim(),
+        valor:       val,
+      });
     }
     if (origem === 'Conta Paga' || origem === 'Débito em Conta Corrente') {
       totalAntec += val;
     }
   }
   const mesLabel = M[curM] + '/' + String(curY).slice(2);
-  return { totalMes, totalGeral, totalAntec, mesLabel };
+  const monthOrder = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const sortedPeriods = [...periodSet].sort((a, b) => {
+    const pa = a.toLowerCase().split('/'), pb = b.toLowerCase().split('/');
+    if (pa.length === 2 && pb.length === 2) {
+      const ya = +('20' + pa[1]), yb = +('20' + pb[1]);
+      if (ya !== yb) return ya - yb;
+      return monthOrder.indexOf(pa[0]) - monthOrder.indexOf(pb[0]);
+    }
+    return a.localeCompare(b);
+  });
+  return { totalMes, totalGeral, totalAntec, mesLabel, rows, periods: sortedPeriods };
 }
 
 // ============================================================
@@ -1824,34 +1858,31 @@ function filterFormacoes() {
 // ============================================================
 // RENDER — CONTAS PAGAS
 // ============================================================
-function renderContas(cp) {
-  CP_DATA = cp;
-
+function renderContas() {
   // KPIs from Matriz
   setText('cp-kpi-mes',    fmt(MATRIZ_DATA.totalMes));
   setText('cp-kpi-mes-sub', MATRIZ_DATA.mesLabel);
 
-  // Populate período filter
+  // Populate período filter from col W of Matriz
   const selP = document.getElementById('cp-periodo');
   if (selP && selP.options.length <= 1) {
-    const sortedMonths = [...new Set(cp.rows.map(r => r.mesKey).filter(m => m))]
-      .sort((a, b) => {
-        const M = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-        const parse = s => { const [m,y] = s.split('/'); return +('20'+y)*12 + M.indexOf(m); };
-        return parse(a) - parse(b);
-      });
-    sortedMonths.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; selP.appendChild(o); });
+    MATRIZ_DATA.periods.forEach(p => {
+      const o = document.createElement('option'); o.value = p; o.textContent = p; selP.appendChild(o);
+    });
+    const oRange = document.createElement('option');
+    oRange.value = '__range__'; oRange.textContent = 'Selecione período...';
+    selP.appendChild(oRange);
   }
 
   // Populate categoria filter
-  const cats = [...new Set(cp.rows.map(r => r.categoria).filter(c => c))].sort();
+  const cats = [...new Set(MATRIZ_DATA.rows.map(r => r.categoria).filter(c => c))].sort();
   const selC = document.getElementById('cp-categoria');
   if (selC && selC.options.length <= 1) {
     cats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; selC.appendChild(o); });
   }
 
   renderCPCategorias(CP_CATS);
-  renderCPTable(cp.rows);
+  renderCPTable(MATRIZ_DATA.rows);
 }
 
 function renderCPCategorias(cats) {
@@ -1943,9 +1974,15 @@ function filterCP() {
   const q  = document.getElementById('cp-search').value.toLowerCase();
   const pe = document.getElementById('cp-periodo').value;
   const ca = document.getElementById('cp-categoria').value;
-  renderCPTable(CP_DATA.rows.filter(r =>
+  const rangeDiv = document.getElementById('cp-range-picker');
+  if (rangeDiv) rangeDiv.style.display = pe === '__range__' ? 'flex' : 'none';
+  const de  = document.getElementById('cp-date-de')?.value || '';
+  const ate = document.getElementById('cp-date-ate')?.value || '';
+  renderCPTable((MATRIZ_DATA.rows || []).filter(r =>
     r.fornecedor.toLowerCase().includes(q) &&
-    (!pe || r.mesKey === pe) &&
+    (pe === '__range__'
+      ? ((!de || r.dateISO >= de) && (!ate || r.dateISO <= ate))
+      : (!pe || r.periodoW === pe)) &&
     (!ca || r.categoria === ca) &&
     (!CP_ANO_FILTER || r.ano === CP_ANO_FILTER)
   ));
@@ -1989,21 +2026,9 @@ function loadAll() {
     }
   });
 
-  let _cpDone = false, _mzDone = false;
-  function tryRenderContas() {
-    if (_cpDone && _mzDone) renderContas(CP_DATA);
-  }
-
-  fetchSheet('CP', raw => {
-    CP_DATA = parseCP(raw);
-    _cpDone = true;
-    tryRenderContas();
-  });
-
   fetchSheet('Matriz', raw => {
     MATRIZ_DATA = parseMatriz(raw);
-    _mzDone = true;
-    tryRenderContas();
+    renderContas();
   });
 
   fetchSheet('CP.categorias', raw => {
