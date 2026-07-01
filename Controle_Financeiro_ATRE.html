@@ -996,6 +996,8 @@ function parseMatriz(raw) {
     }
   }
   const mesLabel = M[curM] + '/' + String(curY).slice(2);
+  console.log('[Matriz] rows total:', raw.length - 1, '| Conta Paga rows:', rows.length, '| totalGeral:', totalGeral);
+  console.log('[Matriz] primeiros origens (col O):', raw.slice(1, 5).map(r => JSON.stringify(r[14])));
   const monthOrder = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const sortedPeriods = [...periodSet].sort((a, b) => {
     const pa = a.toLowerCase().split('/'), pb = b.toLowerCase().split('/');
