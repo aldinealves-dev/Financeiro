@@ -592,7 +592,7 @@ let _inadimData = { topRows: [], totalRow: [], pct: '—' };
 let _periodo = '';
 let FORMACOES_DATA = [];
 let CP_DATA = { rows: [], totalMes: 0, totalAno: 0, totalGeral: 0, mesLabel: '—', periods: [] };
-let MATRIZ_DATA = { totalAntec: 0 };
+let MATRIZ_DATA = { totalMes: 0, totalAno: 0, totalGeral: 0, mesLabel: '—', rows: [], periods: [] };
 let CP_CATS = [];
 
 // ============================================================
@@ -976,9 +976,6 @@ function parseCP(raw) {
     }
     return a.localeCompare(b);
   });
-  console.log('[CP] raw total:', raw.length-1, '| rows incluídas:', rows.length, '| totalGeral:', totalGeral);
-  console.log('[CP] primeiros r[5] (col F):', raw.slice(1,5).map(r => JSON.stringify(r[5])));
-  console.log('[CP] primeiros r[0] (sit) + r[5] (val):', raw.slice(1,5).map(r => r[0]+'|'+r[5]));
   return { rows, totalMes, totalAno, totalGeral, mesLabel, periods: sortedPeriods };
 }
 
@@ -986,15 +983,66 @@ function parseCP(raw) {
 // PARSING — Matriz (Antecipação de Resultados)
 // ============================================================
 function parseMatriz(raw) {
-  let totalAntec = 0;
+  const today = new Date();
+  const curY = today.getFullYear(), curM = today.getMonth();
+  const M = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  let totalMes = 0, totalAno = 0, totalGeral = 0;
+  const rows = [];
+  const periodSet = new Set();
+  const EXCL = new Set(['Devoluções de Vendas de Serviços Prestados', 'Movimentação Financeira']);
+
+  // DEBUG — remove após validar
+  console.log('[Matriz] raw rows:', raw.length - 1, '| colunas por linha:', raw[0]?.length);
+  console.log('[Matriz] row0 (primeira linha):', JSON.stringify(raw[0]));
+  console.log('[Matriz] origens únicas col O(14):', [...new Set(raw.slice(1).map(r => r[14]))]);
+  let cpCount = 0;
+
   for (let i = 1; i < raw.length; i++) {
     const r = raw[i];
     const origem = String(r[14] || '').trim();
+    const categ  = String(r[4]  || '').trim();
     const val    = Math.abs(parseBRL(r[5] || '0'));
-    if (!val) continue;
-    if (origem === 'Débito em Conta Corrente') totalAntec += val;
+    if (!val || EXCL.has(categ)) continue;
+    if (origem === 'Conta Paga') {
+      cpCount++;
+      totalGeral += val;
+      const dm = String(r[1]||'').match(/Date\((\d+),(\d+)/);
+      if (dm && +dm[1] === curY) {
+        totalAno += val;
+        if (+dm[2] === curM) totalMes += val;
+      }
+      const periodoW = String(r[22] || '').trim();
+      if (periodoW) periodSet.add(periodoW);
+      const dm3 = String(r[1]||'').match(/Date\((\d+),(\d+),(\d+)\)/);
+      const dateISO = dm3 ? `${dm3[1]}-${String(+dm3[2]+1).padStart(2,'0')}-${String(+dm3[3]).padStart(2,'0')}` : '';
+      rows.push({
+        data:        parseCPDate(r[1]),
+        dataSortKey: parseCPSortKey(r[1]),
+        dateISO:     dateISO,
+        mesKey:      parseCPMonthKey(r[1]),
+        periodoW:    periodoW,
+        ano:         (dm || [])[1] || '',
+        fornecedor:  String(r[2] || '').trim(),
+        categoria:   categ,
+        projeto:     String(r[17] || '').trim(),
+        valor:       val,
+      });
+    }
   }
-  return { totalAntec };
+  console.log('[Matriz] Conta Paga rows:', cpCount, '| totalGeral:', totalGeral);
+
+  const mesLabel = M[curM] + '/' + String(curY).slice(2);
+  const monthOrder = [...M];
+  const sortedPeriods = [...periodSet].sort((a, b) => {
+    const pa = a.toLowerCase().split('/'), pb = b.toLowerCase().split('/');
+    if (pa.length === 2 && pb.length === 2) {
+      const ya = +('20' + pa[1]), yb = +('20' + pb[1]);
+      if (ya !== yb) return ya - yb;
+      return monthOrder.indexOf(pa[0]) - monthOrder.indexOf(pb[0]);
+    }
+    return a.localeCompare(b);
+  });
+  return { totalMes, totalAno, totalGeral, mesLabel, rows, periods: sortedPeriods };
 }
 
 // ============================================================
@@ -1853,17 +1901,17 @@ function filterFormacoes() {
 // RENDER — CONTAS PAGAS
 // ============================================================
 function renderContas() {
-  // KPIs from CP
-  setText('cp-kpi-mes',     fmt(CP_DATA.totalMes));
-  setText('cp-kpi-mes-sub', CP_DATA.mesLabel);
-  setText('cp-kpi-ano',     fmt(CP_DATA.totalAno));
+  // KPIs from Matriz
+  setText('cp-kpi-mes',     fmt(MATRIZ_DATA.totalMes));
+  setText('cp-kpi-mes-sub', MATRIZ_DATA.mesLabel);
+  setText('cp-kpi-ano',     fmt(MATRIZ_DATA.totalAno));
   setText('cp-kpi-ano-sub', 'Ano ' + new Date().getFullYear());
-  setText('cp-kpi-geral',   fmt(CP_DATA.totalGeral));
+  setText('cp-kpi-geral',   fmt(MATRIZ_DATA.totalGeral));
 
-  // Populate período filter from col W of CP
+  // Populate período filter from col W of Matriz
   const selP = document.getElementById('cp-periodo');
   if (selP && selP.options.length <= 1) {
-    CP_DATA.periods.forEach(p => {
+    MATRIZ_DATA.periods.forEach(p => {
       const o = document.createElement('option'); o.value = p; o.textContent = p; selP.appendChild(o);
     });
     const oRange = document.createElement('option');
@@ -1872,14 +1920,14 @@ function renderContas() {
   }
 
   // Populate categoria filter
-  const cats = [...new Set(CP_DATA.rows.map(r => r.categoria).filter(c => c))].sort();
+  const cats = [...new Set(MATRIZ_DATA.rows.map(r => r.categoria).filter(c => c))].sort();
   const selC = document.getElementById('cp-categoria');
   if (selC && selC.options.length <= 1) {
     cats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; selC.appendChild(o); });
   }
 
   renderCPCategorias(CP_CATS);
-  renderCPTable(CP_DATA.rows);
+  renderCPTable(MATRIZ_DATA.rows);
 }
 
 function renderCPCategorias(cats) {
@@ -1975,7 +2023,7 @@ function filterCP() {
   if (rangeDiv) rangeDiv.style.display = pe === '__range__' ? 'flex' : 'none';
   const de  = document.getElementById('cp-date-de')?.value || '';
   const ate = document.getElementById('cp-date-ate')?.value || '';
-  renderCPTable((CP_DATA.rows || []).filter(r =>
+  renderCPTable((MATRIZ_DATA.rows || []).filter(r =>
     r.fornecedor.toLowerCase().includes(q) &&
     (pe === '__range__'
       ? ((!de || r.dateISO >= de) && (!ate || r.dateISO <= ate))
@@ -2023,8 +2071,8 @@ function loadAll() {
     }
   });
 
-  fetchSheet('CP', raw => {
-    CP_DATA = parseCP(raw);
+  fetchSheet('Matriz', raw => {
+    MATRIZ_DATA = parseMatriz(raw);
     renderContas();
   });
 
