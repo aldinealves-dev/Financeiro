@@ -641,7 +641,7 @@ function statusBadge(s) {
 // JSONP FETCH
 // ============================================================
 let _cbIdx = 0;
-function fetchSheet(sheetName, cb) {
+function fetchSheet(sheetName, cb, opts) {
   const cbName = '__gviz_' + (++_cbIdx);
   window[cbName] = function(resp) {
     delete window[cbName];
@@ -656,9 +656,12 @@ function fetchSheet(sheetName, cb) {
   const s = document.createElement('script');
   s.id = '_s' + cbName;
   s.onerror = () => { delete window[cbName]; cb([]); };
+  const sheetParam = (opts && opts.gid)
+    ? '&gid=' + opts.gid
+    : '&sheet=' + encodeURIComponent(sheetName);
   s.src = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
     '/gviz/tq?tqx=out:json;responseHandler:' + cbName +
-    '&sheet=' + encodeURIComponent(sheetName) + '&headers=0';
+    sheetParam + '&headers=0';
   document.head.appendChild(s);
 }
 
@@ -908,21 +911,32 @@ function parseFormacoes(raw) {
 // ============================================================
 // PARSING — CP (Contas Pagas)
 // ============================================================
+function _dateParts(s) {
+  const str = String(s || '');
+  const dm = str.match(/Date\((\d+),(\d+),(\d+)\)/);
+  if (dm) return [+dm[1], +dm[2], +dm[3]];
+  const serial = +str;
+  if (!isNaN(serial) && serial > 40000 && serial < 60000) {
+    const d = new Date(Math.round((serial - 25569) * 86400000));
+    return [d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()];
+  }
+  return null;
+}
 function parseCPDate(s) {
-  const m = String(s||'').match(/Date\((\d+),(\d+),(\d+)\)/);
-  if (!m) return s || '';
-  return String(+m[3]).padStart(2,'0') + '/' + String(+m[2]+1).padStart(2,'0') + '/' + m[1];
+  const p = _dateParts(s);
+  if (!p) return s || '';
+  return String(p[2]).padStart(2,'0') + '/' + String(p[1]+1).padStart(2,'0') + '/' + p[0];
 }
 function parseCPMonthKey(s) {
-  const m = String(s||'').match(/Date\((\d+),(\d+)/);
-  if (!m) return '';
+  const p = _dateParts(s);
+  if (!p) return '';
   const M = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-  return M[+m[2]] + '/' + String(m[1]).slice(2);
+  return M[p[1]] + '/' + String(p[0]).slice(2);
 }
 function parseCPSortKey(s) {
-  const m = String(s||'').match(/Date\((\d+),(\d+)/);
-  if (!m) return '';
-  return m[1] + String(+m[2]).padStart(2,'0');
+  const p = _dateParts(s);
+  if (!p) return '';
+  return p[0] + String(p[1]).padStart(2,'0');
 }
 
 function parseCP(raw) {
@@ -989,39 +1003,37 @@ function parseMatriz(raw) {
   let totalMes = 0, totalAno = 0, totalGeral = 0;
   const rows = [];
   const periodSet = new Set();
-  const EXCL = new Set(['Devoluções de Vendas de Serviços Prestados', 'Movimentação Financeira']);
+  const EXCL = new Set(['Devoluções de Vendas de Serviços Prestados', 'Movimentação Financeira (-)']);
+  let _dbgSemFiltro = 0, _dbgExclDev = 0, _dbgExclMov = 0, _dbgSemData = 0, _dbgSemDataVal = 0;
 
-  // DEBUG — remove após validar
-  console.log('[Matriz] raw rows:', raw.length - 1, '| colunas por linha:', raw[0]?.length);
-  console.log('[Matriz] row0 (primeira linha):', JSON.stringify(raw[0]));
-  console.log('[Matriz] origens únicas col O(14):', [...new Set(raw.slice(1).map(r => r[14]))]);
-  let cpCount = 0;
-
-  for (let i = 1; i < raw.length; i++) {
+  for (let i = 0; i < raw.length; i++) {
     const r = raw[i];
     const origem = String(r[14] || '').trim();
     const categ  = String(r[4]  || '').trim();
     const val    = Math.abs(parseBRL(r[5] || '0'));
-    if (!val || EXCL.has(categ)) continue;
+    if (!val || origem !== 'Conta Paga') continue;
+    _dbgSemFiltro += val;
+    if (categ === 'Devoluções de Vendas de Serviços Prestados') { _dbgExclDev += val; continue; }
+    if (categ === 'Movimentação Financeira (-)') { _dbgExclMov += val; continue; }
     if (origem === 'Conta Paga') {
-      cpCount++;
       totalGeral += val;
-      const dm = String(r[1]||'').match(/Date\((\d+),(\d+)/);
-      if (dm && +dm[1] === curY) {
+      const dp = _dateParts(r[1]);
+      if (dp && dp[0] === curY) {
         totalAno += val;
-        if (+dm[2] === curM) totalMes += val;
+        if (dp[1] === curM) totalMes += val;
+      } else if (!dp) {
+        _dbgSemData++; _dbgSemDataVal += val;
       }
       const periodoW = String(r[22] || '').trim();
       if (periodoW) periodSet.add(periodoW);
-      const dm3 = String(r[1]||'').match(/Date\((\d+),(\d+),(\d+)\)/);
-      const dateISO = dm3 ? `${dm3[1]}-${String(+dm3[2]+1).padStart(2,'0')}-${String(+dm3[3]).padStart(2,'0')}` : '';
+      const dateISO = dp ? `${dp[0]}-${String(dp[1]+1).padStart(2,'0')}-${String(dp[2]).padStart(2,'0')}` : '';
       rows.push({
         data:        parseCPDate(r[1]),
         dataSortKey: parseCPSortKey(r[1]),
         dateISO:     dateISO,
         mesKey:      parseCPMonthKey(r[1]),
         periodoW:    periodoW,
-        ano:         (dm || [])[1] || '',
+        ano:         dp ? String(dp[0]) : '',
         fornecedor:  String(r[2] || '').trim(),
         categoria:   categ,
         projeto:     String(r[17] || '').trim(),
@@ -1029,8 +1041,17 @@ function parseMatriz(raw) {
       });
     }
   }
-  console.log('[Matriz] Conta Paga rows:', cpCount, '| totalGeral:', totalGeral);
-
+  console.table({
+    'Conta Paga BRUTO (sem filtro)':              _dbgSemFiltro,
+    'Excluído — Devoluções':                      _dbgExclDev,
+    'Excluído — Movimentação Financeira (-)':     _dbgExclMov,
+    'Total Geral (resultado final)':              totalGeral,
+    'Bruto − Excluídos (conferência)':            _dbgSemFiltro - _dbgExclDev - _dbgExclMov,
+    '─────────────────────────────':              '──────────',
+    'Total Ano ' + curY:                          totalAno,
+    'Linhas sem data parseável (qtd)':            _dbgSemData,
+    'Valor dessas linhas s/ data':                _dbgSemDataVal,
+  });
   const mesLabel = M[curM] + '/' + String(curY).slice(2);
   const monthOrder = [...M];
   const sortedPeriods = [...periodSet].sort((a, b) => {
@@ -2074,7 +2095,7 @@ function loadAll() {
   fetchSheet('Matriz', raw => {
     MATRIZ_DATA = parseMatriz(raw);
     renderContas();
-  });
+  }, { gid: 346698554 });
 
   fetchSheet('CP.categorias', raw => {
     const cats = parseCPCategorias(raw);
