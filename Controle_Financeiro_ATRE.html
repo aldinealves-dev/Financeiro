@@ -976,6 +976,9 @@ function parseCP(raw) {
     }
     return a.localeCompare(b);
   });
+  console.log('[CP] raw total:', raw.length-1, '| rows incluídas:', rows.length, '| totalGeral:', totalGeral);
+  console.log('[CP] primeiros r[5] (col F):', raw.slice(1,5).map(r => JSON.stringify(r[5])));
+  console.log('[CP] primeiros r[0] (sit) + r[5] (val):', raw.slice(1,5).map(r => r[0]+'|'+r[5]));
   return { rows, totalMes, totalAno, totalGeral, mesLabel, periods: sortedPeriods };
 }
 
