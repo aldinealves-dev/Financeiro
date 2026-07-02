@@ -1,0 +1,19 @@
+{
+  "name": "Controle Financeiro ATRE",
+  "short_name": "Financeiro",
+  "description": "Dashboard financeiro ATRE",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b4f63",
+  "theme_color": "#0b4f63",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

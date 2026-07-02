@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0b4f63"/>
+  <rect x="82" y="310" width="72" height="148" rx="10" fill="#ffffff" opacity="0.85"/>
+  <rect x="184" y="238" width="72" height="220" rx="10" fill="#ffffff" opacity="0.85"/>
+  <rect x="286" y="172" width="72" height="286" rx="10" fill="#ffffff" opacity="0.85"/>
+  <rect x="388" y="118" width="72" height="340" rx="10" fill="#ffffff" opacity="0.92"/>
+  <polyline points="118,305 220,233 322,167 424,113"
+    stroke="#5ecfe6" stroke-width="16" fill="none"
+    stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="118" cy="305" r="13" fill="#5ecfe6"/>
+  <circle cx="220" cy="233" r="13" fill="#5ecfe6"/>
+  <circle cx="322" cy="167" r="13" fill="#5ecfe6"/>
+  <circle cx="424" cy="113" r="13" fill="#5ecfe6"/>
+  <text x="82" y="95" font-size="58" font-family="'Segoe UI',Arial,sans-serif"
+    font-weight="700" fill="#ffffff" opacity="0.95">ATRE</text>
+</svg>
