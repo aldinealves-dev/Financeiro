@@ -2086,10 +2086,10 @@ function loadAll() {
     }
   });
 
-  fetchSheet('Matriz', raw => {
+  fetchSheet('CP', raw => {
     MATRIZ_DATA = parseMatriz(raw);
     renderContas();
-  }, { gid: 346698554 });
+  });
 
   fetchSheet('CP.categorias', raw => {
     const cats = parseCPCategorias(raw);
