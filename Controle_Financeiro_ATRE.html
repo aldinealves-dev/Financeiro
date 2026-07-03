@@ -1011,25 +1011,19 @@ function parseMatriz(raw) {
   const rows = [];
   const periodSet = new Set();
   const EXCL = new Set(['Devoluções de Vendas de Serviços Prestados', 'Movimentação Financeira (-)']);
-  let _dbgSemFiltro = 0, _dbgExclDev = 0, _dbgExclMov = 0, _dbgSemData = 0, _dbgSemDataVal = 0;
 
   for (let i = 0; i < raw.length; i++) {
     const r = raw[i];
     const origem = String(r[14] || '').trim();
     const categ  = String(r[4]  || '').trim();
     const val    = Math.abs(parseBRL(r[5] || '0'));
-    if (!val || origem !== 'Conta Paga') continue;
-    _dbgSemFiltro += val;
-    if (categ === 'Devoluções de Vendas de Serviços Prestados') { _dbgExclDev += val; continue; }
-    if (categ === 'Movimentação Financeira (-)') { _dbgExclMov += val; continue; }
+    if (!val || origem !== 'Conta Paga' || EXCL.has(categ)) continue;
     if (origem === 'Conta Paga') {
       totalGeral += val;
       const dp = _dateParts(r[1]);
       if (dp && dp[0] === curY) {
         totalAno += val;
         if (dp[1] === curM) totalMes += val;
-      } else if (!dp) {
-        _dbgSemData++; _dbgSemDataVal += val;
       }
       const periodoW = String(r[22] || '').trim();
       if (periodoW) periodSet.add(periodoW);
@@ -1048,17 +1042,6 @@ function parseMatriz(raw) {
       });
     }
   }
-  console.table({
-    'Conta Paga BRUTO (sem filtro)':              _dbgSemFiltro,
-    'Excluído — Devoluções':                      _dbgExclDev,
-    'Excluído — Movimentação Financeira (-)':     _dbgExclMov,
-    'Total Geral (resultado final)':              totalGeral,
-    'Bruto − Excluídos (conferência)':            _dbgSemFiltro - _dbgExclDev - _dbgExclMov,
-    '─────────────────────────────':              '──────────',
-    'Total Ano ' + curY:                          totalAno,
-    'Linhas sem data parseável (qtd)':            _dbgSemData,
-    'Valor dessas linhas s/ data':                _dbgSemDataVal,
-  });
   const mesLabel = M[curM] + '/' + String(curY).slice(2);
   const monthOrder = [...M];
   const sortedPeriods = [...periodSet].sort((a, b) => {
