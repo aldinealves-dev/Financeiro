@@ -667,9 +667,10 @@ function fetchSheet(sheetName, cb, opts) {
   const sheetParam = (opts && opts.gid)
     ? '&gid=' + opts.gid
     : '&sheet=' + encodeURIComponent(sheetName);
+  const rangeParam = (opts && opts.range) ? '&range=' + opts.range : '';
   s.src = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
     '/gviz/tq?tqx=out:json;responseHandler:' + cbName +
-    sheetParam + '&headers=0';
+    sheetParam + '&headers=0' + rangeParam;
   document.head.appendChild(s);
 }
 
@@ -777,7 +778,7 @@ function parseClube(raw) {
     const r = raw[i];
     const num = parseInt(r[0]);
     if (!num) continue;
-    if (!r[1] || String(r[1]).toUpperCase().includes('TOTAL')) break;
+    if (!r[1] || String(r[1]).toUpperCase().includes('TOTAL')) continue;
     // [num, nome, ano, ini, fim, valor, ato, saldo, status, colN/APagar, pago]
     // Partners Ouro: col6=Valor, col7=Ato, col9=Saldo, col12=Status, col13=Pago, col14=A Pagar/ColN
     out.push([num, r[1], r[3] || '', fmtDateClube(r[4]), fmtDateClube(r[5]), r[6] || '0', r[7] || '0', r[9] || '0', r[12] || '', r[14] || '0', r[13] || '0']);
@@ -2063,8 +2064,9 @@ function loadAll() {
     renderClubeStats();
     renderClubeCharts();
     renderInadim();
+
     setText('inad-count', CLUBE_DATA.filter(r => r[8] === 'INADIMPLENTE').length || '—');
-  });
+  }, { range: 'A:Z' });
 
   fetchSheet('FC', raw => {
     const fc = parseFC(raw);
