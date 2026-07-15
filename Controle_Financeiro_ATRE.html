@@ -327,7 +327,8 @@ tr:last-child td { border-bottom: none; }
               <th onclick="sortTable(this)" data-col="4">Fim</th>
               <th onclick="sortTable(this)" data-col="5" class="td-center">Valor Contrato</th>
               <th onclick="sortTable(this)" data-col="6" class="td-center">Ato Pago</th>
-              <th onclick="sortTable(this)" data-col="7" class="td-center">Saldo</th>
+              <th onclick="sortTable(this)" data-col="10" class="td-center">Pago</th>
+              <th onclick="sortTable(this)" data-col="9" class="td-center">A Pagar</th>
               <th onclick="sortTable(this)" data-col="8">Status</th>
             </tr></thead>
             <tbody id="clube-tbody"></tbody>
@@ -777,9 +778,9 @@ function parseClube(raw) {
     const num = parseInt(r[0]);
     if (!num) continue;
     if (!r[1] || String(r[1]).toUpperCase().includes('TOTAL')) break;
-    // [num, nome, ano, ini, fim, valor, ato, saldo, status, colN]
-    // Partners Ouro: col2=TIPO, col3=Ano, col4=Início, col5=Fim, col6=Valor, col7=Ato, col9=Saldo, col12=Status, col14=ColN
-    out.push([num, r[1], r[3] || '', fmtDateClube(r[4]), fmtDateClube(r[5]), r[6] || '0', r[7] || '0', r[9] || '0', r[12] || '', r[14] || '0']);
+    // [num, nome, ano, ini, fim, valor, ato, saldo, status, colN/APagar, pago]
+    // Partners Ouro: col6=Valor, col7=Ato, col9=Saldo, col12=Status, col13=Pago, col14=A Pagar/ColN
+    out.push([num, r[1], r[3] || '', fmtDateClube(r[4]), fmtDateClube(r[5]), r[6] || '0', r[7] || '0', r[9] || '0', r[12] || '', r[14] || '0', r[13] || '0']);
   }
   return out;
 }
@@ -1494,7 +1495,8 @@ function renderClube(data) {
       <td>${r[3]}</td><td>${r[4]}</td>
       <td class="td-center">${parseBRL(r[5]) ? fmt(parseBRL(r[5])) : '—'}</td>
       <td class="td-center">${parseBRL(r[6]) ? fmt(parseBRL(r[6])) : '—'}</td>
-      <td class="td-center">${parseBRL(r[7]) ? fmt(parseBRL(r[7])) : '—'}</td>
+      <td class="td-center">${parseBRL(r[10]) ? fmt(parseBRL(r[10])) : '—'}</td>
+      <td class="td-center">${parseBRL(r[9]) ? fmt(parseBRL(r[9])) : '—'}</td>
       <td>${statusBadge(r[8])}</td>
     </tr>`).join('');
   }
