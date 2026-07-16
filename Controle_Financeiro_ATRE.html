@@ -214,11 +214,11 @@ tr:last-child td { border-bottom: none; }
             <table>
               <thead><tr>
                 <th onclick="sortTable(this)">Produto</th>
-                <th onclick="sortTable(this)">Qtd</th>
-                <th onclick="sortTable(this)" class="td-right">Valor Total</th>
-                <th onclick="sortTable(this)" class="td-right">Recebido</th>
-                <th onclick="sortTable(this)" class="td-right">A Receber</th>
-                <th>% Recebido</th>
+                <th onclick="sortTable(this)" class="td-center">Qtd</th>
+                <th onclick="sortTable(this)" class="td-center">Valor Total</th>
+                <th onclick="sortTable(this)" class="td-center">Recebido</th>
+                <th onclick="sortTable(this)" class="td-center">A Receber</th>
+                <th class="td-center">% Recebido</th>
               </tr></thead>
               <tbody id="carteira-tbody"><tr><td colspan="6" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr></tbody>
               <tfoot id="carteira-tfoot"></tfoot>
@@ -236,8 +236,8 @@ tr:last-child td { border-bottom: none; }
           <table>
             <thead><tr>
               <th>Cliente</th>
-              <th class="td-right">Parcelas em Atraso</th>
-              <th class="td-right">Valor em Aberto</th>
+              <th class="td-center">Parcelas em Atraso</th>
+              <th class="td-center">Valor em Aberto</th>
             </tr></thead>
             <tbody id="resumo-inad-tbody"><tr><td colspan="3" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr></tbody>
             <tfoot id="resumo-inad-tfoot"></tfoot>
@@ -251,8 +251,8 @@ tr:last-child td { border-bottom: none; }
             <table>
               <thead><tr>
                 <th>Categoria</th>
-                <th class="td-right">Valor Pago</th>
-                <th class="td-right">% Total</th>
+                <th class="td-center">Valor Pago</th>
+                <th class="td-center">% Total</th>
                 <th>Proporção</th>
               </tr></thead>
               <tbody id="desp-tbody"><tr><td colspan="4" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr></tbody>
@@ -265,9 +265,9 @@ tr:last-child td { border-bottom: none; }
           <div class="table-wrap">
             <table>
               <thead><tr>
-                <th>Vínculo</th><th class="td-right">Qtd</th>
-                <th class="td-right">Salários</th><th class="td-right">Benef./Enc.</th>
-                <th class="td-right">Custo Total</th>
+                <th>Vínculo</th><th class="td-center">Qtd</th>
+                <th class="td-center">Salários</th><th class="td-center">Benef./Enc.</th>
+                <th class="td-center">Custo Total</th>
               </tr></thead>
               <tbody id="hc-tbody"><tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr></tbody>
               <tfoot id="hc-tfoot"></tfoot>
@@ -1231,15 +1231,21 @@ function renderResumo(rows) {
       }
 
       let tbodyHtml = '', tfootHtml = '';
+      let _secaoAtual = '';
 
       for (let i = secEnd + 2; i < N; i++) {
         const r = rows[i] || [];
         const label = String(r[0] || '').trim();
         if (!label) continue;
 
-        const isSaldo   = /^saldo/i.test(label);
-        const isSecao   = /^(entradas?|saídas?|saidas?)/i.test(label);
-        const isTotal   = /^total/i.test(label) || isSaldo;
+        const isSaldo    = /^saldo/i.test(label);
+        const isEntradas = /^entradas?/i.test(label);
+        const isSaidas   = /^saídas?|^saidas?/i.test(label);
+        const isSecao    = isEntradas || isSaidas;
+        const isTotal    = /^total/i.test(label) || isSaldo;
+
+        if (isEntradas) _secaoAtual = 'entradas';
+        else if (isSaidas) _secaoAtual = 'saidas';
 
         // Ignora linhas onde todos os valores dos meses são vazios (notas de rodapé da planilha)
         const hasAnyValue = monthCols.some(c => r[c] !== undefined && r[c] !== '' && r[c] !== null && parseBRL(r[c]) !== 0);
@@ -1260,11 +1266,15 @@ function renderResumo(rows) {
         if (isSaldo) {
           tfootHtml += `<tr class="tfoot-row"><td>${label}</td>${cells}</tr>`;
         } else if (isSecao) {
-          tbodyHtml += `<tr style="background:#e5f3f8"><td style="font-weight:700;color:var(--primary)">${label}</td>${cells}</tr>`;
+          const bg = isEntradas ? '#d1fae5' : '#fee2e2';
+          const clr = isEntradas ? 'var(--green)' : 'var(--red)';
+          tbodyHtml += `<tr style="background:${bg}"><td style="font-weight:700;color:${clr}">${label}</td>${cells}</tr>`;
         } else if (isTotal) {
-          tbodyHtml += `<tr style="font-weight:700;background:#f0f7fb"><td>${label}</td>${cells}</tr>`;
+          const bg = _secaoAtual === 'entradas' ? '#ecfdf5' : _secaoAtual === 'saidas' ? '#fff1f2' : '#f0f7fb';
+          tbodyHtml += `<tr style="font-weight:700;background:${bg}"><td>${label}</td>${cells}</tr>`;
         } else {
-          tbodyHtml += `<tr><td style="padding-left:20px">${label}</td>${cells}</tr>`;
+          const bg = _secaoAtual === 'entradas' ? 'rgba(16,185,129,0.05)' : _secaoAtual === 'saidas' ? 'rgba(239,68,68,0.05)' : '';
+          tbodyHtml += `<tr style="${bg ? 'background:' + bg : ''}"><td style="padding-left:20px">${label}</td>${cells}</tr>`;
         }
       }
 
@@ -1283,11 +1293,11 @@ function renderCarteira(rows, total) {
       const vt = parseBRL(r[2]), rc = parseBRL(r[3]), ar = parseBRL(r[4]);
       const pct = vt > 0 ? Math.round(rc / vt * 100) : 0;
       return `<tr>
-        <td>${r[0] || ''}</td><td>${r[1] || '—'}</td>
-        <td class="td-right">${fmt(vt)}</td>
-        <td class="td-right">${fmt(rc)}</td>
-        <td class="td-right">${ar > 0 ? fmt(ar) : '—'}</td>
-        <td><div class="prog-bar-wrap">
+        <td>${r[0] || ''}</td><td class="td-center">${r[1] || '—'}</td>
+        <td class="td-center">${fmt(vt)}</td>
+        <td class="td-center">${fmt(rc)}</td>
+        <td class="td-center">${ar > 0 ? fmt(ar) : '—'}</td>
+        <td class="td-center"><div class="prog-bar-wrap">
           <div class="prog-bar"><div class="prog-bar-fill" style="width:${pct}%;background:${colors[i % colors.length]}"></div></div>
           <span class="prog-pct">${pct}%</span>
         </div></td></tr>`;
@@ -1295,9 +1305,9 @@ function renderCarteira(rows, total) {
   }
   if (tfoot && total.length > 0) {
     const tv = parseBRL(total[2]), tr2 = parseBRL(total[3]), ta = parseBRL(total[4]);
-    tfoot.innerHTML = `<tr class="tfoot-row"><td>TOTAL</td><td>—</td>
-      <td class="td-right">${fmt(tv)}</td><td class="td-right">${fmt(tr2)}</td>
-      <td class="td-right">${ta > 0 ? fmt(ta) : '—'}</td><td></td></tr>`;
+    tfoot.innerHTML = `<tr class="tfoot-row"><td>TOTAL</td><td class="td-center">—</td>
+      <td class="td-center">${fmt(tv)}</td><td class="td-center">${fmt(tr2)}</td>
+      <td class="td-center">${ta > 0 ? fmt(ta) : '—'}</td><td></td></tr>`;
   }
   // Chart
   mkChart('chartCarteira', {
@@ -1333,8 +1343,8 @@ function renderDespesas(rows) {
       const color = PAL[i % PAL.length];
       return `<tr>
         <td>${d.cat}</td>
-        <td class="td-right" style="font-weight:600">${fmt(d.val)}</td>
-        <td class="td-right" style="color:var(--text-muted)">${pct.toFixed(1).replace('.', ',')}%</td>
+        <td class="td-center" style="font-weight:600">${fmt(d.val)}</td>
+        <td class="td-center" style="color:var(--text-muted)">${pct.toFixed(1).replace('.', ',')}%</td>
         <td style="min-width:100px"><div class="prog-bar-wrap">
           <div class="prog-bar"><div class="prog-bar-fill" style="width:${barW}%;background:${color}"></div></div>
         </div></td>
@@ -1342,7 +1352,7 @@ function renderDespesas(rows) {
     }).join('');
   }
   if (tfoot && totalDesp) {
-    tfoot.innerHTML = `<tr class="tfoot-row"><td>TOTAL</td><td class="td-right">${fmt(totalDesp)}</td><td class="td-right">100%</td><td></td></tr>`;
+    tfoot.innerHTML = `<tr class="tfoot-row"><td>TOTAL</td><td class="td-center">${fmt(totalDesp)}</td><td class="td-center">100%</td><td></td></tr>`;
   }
 }
 
@@ -1354,18 +1364,18 @@ function renderHeadcount(rows) {
   const totalRow = rows.find(r => String(r[0] || '').toUpperCase().includes('TOTAL')) || [];
   tbody.innerHTML = dataRows.map(r => `<tr class="hc-row">
     <td>${r[0]||''}</td>
-    <td class="td-right td-center">${r[1]||'—'}</td>
-    <td class="td-right">${parseBRL(r[2]) ? fmt(parseBRL(r[2])) : '—'}</td>
-    <td class="td-right">${parseBRL(r[3]) ? fmt(parseBRL(r[3])) : '—'}</td>
-    <td class="td-right">${parseBRL(r[4]) ? fmt(parseBRL(r[4])) : '—'}</td>
+    <td class="td-center">${r[1]||'—'}</td>
+    <td class="td-center">${parseBRL(r[2]) ? fmt(parseBRL(r[2])) : '—'}</td>
+    <td class="td-center">${parseBRL(r[3]) ? fmt(parseBRL(r[3])) : '—'}</td>
+    <td class="td-center">${parseBRL(r[4]) ? fmt(parseBRL(r[4])) : '—'}</td>
   </tr>`).join('');
   if (tfoot && totalRow.length) {
     tfoot.innerHTML = `<tr class="tfoot-row">
       <td>TOTAL FOLHA</td>
-      <td class="td-right td-center">${totalRow[1]||'—'}</td>
-      <td class="td-right">${parseBRL(totalRow[2]) ? fmt(parseBRL(totalRow[2])) : '—'}</td>
-      <td class="td-right">${parseBRL(totalRow[3]) ? fmt(parseBRL(totalRow[3])) : '—'}</td>
-      <td class="td-right">${parseBRL(totalRow[4]) ? fmt(parseBRL(totalRow[4])) : '—'}</td>
+      <td class="td-center">${totalRow[1]||'—'}</td>
+      <td class="td-center">${parseBRL(totalRow[2]) ? fmt(parseBRL(totalRow[2])) : '—'}</td>
+      <td class="td-center">${parseBRL(totalRow[3]) ? fmt(parseBRL(totalRow[3])) : '—'}</td>
+      <td class="td-center">${parseBRL(totalRow[4]) ? fmt(parseBRL(totalRow[4])) : '—'}</td>
     </tr>`;
   }
 }
@@ -1437,15 +1447,15 @@ function renderResumoInad() {
     const val  = parseBRL(r[4] || r[3] || r[2] || '');
     return `<tr>
       <td>${nome}</td>
-      <td class="td-right">${parc}</td>
-      <td class="td-right" style="font-weight:600;color:var(--red)">${val ? fmt(val) : '—'}</td>
+      <td class="td-center">${parc}</td>
+      <td class="td-center" style="font-weight:600;color:var(--red)">${val ? fmt(val) : '—'}</td>
     </tr>`;
   }).join('');
   const totalV = parseBRL(_inadimData.totalRow[4] || _inadimData.totalRow[3] || _inadimData.totalRow[2] || '');
   if (tfoot) {
     tfoot.innerHTML = `<tr class="tfoot-row">
       <td>Total</td><td></td>
-      <td class="td-right" style="color:var(--red)">${totalV ? fmt(totalV) : '—'}</td>
+      <td class="td-center" style="color:var(--red)">${totalV ? fmt(totalV) : '—'}</td>
     </tr>`;
   }
 }
