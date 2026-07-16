@@ -350,11 +350,11 @@ tr:last-child td { border-bottom: none; }
           <div class="table-wrap">
             <table>
               <thead><tr>
-                <th>Cliente</th><th class="td-right">Qtd Parc.</th>
-                <th class="td-right">Em Aberto</th><th>Status</th>
+                <th class="td-center">Cliente</th><th class="td-center">Qtd Parc.</th>
+                <th class="td-center">Em Aberto</th><th class="td-center">Status</th>
               </tr></thead>
               <tbody id="inad-criticos-tbody"><tr><td colspan="4" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr></tbody>
-              <tfoot><tr class="tfoot-row"><td>TOTAL GERAL</td><td class="td-right">—</td><td class="td-right" id="inad-total-geral">—</td><td></td></tr></tfoot>
+              <tfoot><tr class="tfoot-row"><td class="td-center">TOTAL GERAL</td><td class="td-center">—</td><td class="td-center" id="inad-total-geral">—</td><td></td></tr></tfoot>
             </table>
           </div>
         </div>
@@ -368,10 +368,12 @@ tr:last-child td { border-bottom: none; }
         <div class="table-wrap">
           <table id="inadim-table">
             <thead><tr>
-              <th>Nome</th><th>Ano</th>
-              <th class="td-right">Valor Contrato</th>
-              <th class="td-right">Ato Pago</th>
-              <th class="td-right">Saldo em Aberto / À Vencer</th>
+              <th>Nome</th>
+              <th class="td-center">Ano</th>
+              <th class="td-center">Valor Contrato</th>
+              <th class="td-center">Pago</th>
+              <th class="td-center">A Pagar</th>
+              <th class="td-center">Saldo em Aberto / À Vencer</th>
             </tr></thead>
             <tbody id="inadim-tbody"></tbody>
           </table>
@@ -597,6 +599,7 @@ const DRE_DATA = {
 // ============================================================
 let CLUBE_DATA = [];
 let _inadimData = { topRows: [], totalRow: [], pct: '—' };
+let INADIM_SALDOS = {}; // nome normalizado → soma col D da aba Inadimplentes
 let _periodo = '';
 let FORMACOES_DATA = [];
 let CP_DATA = { rows: [], totalMes: 0, totalAno: 0, totalGeral: 0, mesLabel: '—', periods: [] };
@@ -1401,10 +1404,10 @@ function renderInadimPage() {
       const emAberto = parseBRL(r[4] || r[3] || r[2] || '');
       const parc = r[2] || r[1] || '—';
       return `<tr>
-        <td>${r[0]||''}</td>
-        <td class="td-right">${parc}</td>
-        <td class="td-right">${emAberto ? fmt(emAberto) : '—'}</td>
-        <td><span class="badge badge-inadimplente">Crítico</span></td>
+        <td class="td-center">${r[0]||''}</td>
+        <td class="td-center">${parc}</td>
+        <td class="td-center">${emAberto ? fmt(emAberto) : '—'}</td>
+        <td class="td-center"><span class="badge badge-inadimplente">Crítico</span></td>
       </tr>`;
     }).join('');
   }
@@ -1447,17 +1450,36 @@ function renderResumoInad() {
   }
 }
 
+function _normName(s) {
+  return String(s||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+}
+function getInadimSaldo(clubeNome) {
+  const cn = _normName(clubeNome);
+  if (INADIM_SALDOS[cn]) return INADIM_SALDOS[cn];
+  for (const [key, val] of Object.entries(INADIM_SALDOS)) {
+    const words = key.split(/\s+/).filter(w => w.length > 2);
+    if (words.length && words.every(w => cn.includes(w))) return val;
+    const cwords = cn.split(/\s+/).filter(w => w.length > 2);
+    if (cwords.length && cwords.every(w => key.includes(w))) return val;
+  }
+  return 0;
+}
+
 function renderInadim() {
   const inad = CLUBE_DATA.filter(r => r[8] === 'INADIMPLENTE');
   const tbody = document.getElementById('inadim-tbody');
   if (tbody) {
-    tbody.innerHTML = inad.map(r => `<tr>
-      <td>${r[1]}</td>
-      <td class="td-center">${r[2]}</td>
-      <td class="td-right">${parseBRL(r[5]) ? fmt(parseBRL(r[5])) : '—'}</td>
-      <td class="td-right">${parseBRL(r[6]) ? fmt(parseBRL(r[6])) : '—'}</td>
-      <td class="td-right" style="color:var(--red);font-weight:600">${parseBRL(r[7]) ? fmt(parseBRL(r[7])) : '—'}</td>
-    </tr>`).join('');
+    tbody.innerHTML = inad.map(r => {
+      const saldoSheet = getInadimSaldo(r[1]);
+      return `<tr>
+        <td>${r[1]}</td>
+        <td class="td-center">${r[2]}</td>
+        <td class="td-center">${parseBRL(r[5]) ? fmt(parseBRL(r[5])) : '—'}</td>
+        <td class="td-center">${parseBRL(r[10]) ? fmt(parseBRL(r[10])) : '—'}</td>
+        <td class="td-center">${parseBRL(r[9]) ? fmt(parseBRL(r[9])) : '—'}</td>
+        <td class="td-center" style="color:var(--red);font-weight:600">${saldoSheet ? fmt(saldoSheet) : '—'}</td>
+      </tr>`;
+    }).join('');
   }
 
   // Donut chart — usa % da planilha de origem
@@ -2057,6 +2079,16 @@ function filterCP() {
 // ============================================================
 function loadAll() {
   fetchSheet('Resumo', rows => renderResumo(rows));
+
+  fetchSheet('Inadimplentes', raw => {
+    INADIM_SALDOS = {};
+    for (let i = 3; i < raw.length; i++) {
+      const nome = String(raw[i][1] || '').trim();
+      const val  = Math.abs(parseBRL(raw[i][3] || '0'));
+      if (nome && val) INADIM_SALDOS[_normName(nome)] = (INADIM_SALDOS[_normName(nome)] || 0) + val;
+    }
+    renderInadim();
+  }, { range: 'A:Z' });
 
   fetchSheet('Partners Ouro', raw => {
     CLUBE_DATA = parseClube(raw);
