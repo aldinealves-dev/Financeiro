@@ -1193,95 +1193,84 @@ function renderResumo(rows) {
   }
   renderHeadcount(hcRows);
 
-  // FLUXO DE CAIXA — lê todas as linhas da seção exatamente como na aba Resumo
-  if (secEnd >= 0) {
-    const fluxoHdrRow = rows[secEnd + 1] || [];
-    const ptMon = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+}
 
-    // Extrai colunas com meses do cabeçalho
-    const pvMonths = [], monthCols = [];
-    for (let c = 1; c < fluxoHdrRow.length; c++) {
-      const mRaw = String(fluxoHdrRow[c] || '').trim();
-      if (!mRaw) continue;
-      let mLabel = mRaw;
-      const gd = mRaw.match(/^Date\((\d{4}),(\d+),(\d+)\)$/);
-      if (gd) {
-        mLabel = (ptMon[+gd[2]] || gd[2]) + '/' + gd[1].slice(2);
-      } else {
-        const serial = +mRaw;
-        if (!isNaN(serial) && serial > 40000 && serial < 60000) {
-          const d = new Date((serial - 25569) * 86400000);
-          mLabel = ptMon[d.getUTCMonth()] + '/' + String(d.getUTCFullYear()).slice(2);
-        } else {
-          const td = mRaw.match(/^([a-záàâãéêíóôõúüç]{3,})[\.\-\/\s]+(\d{2,4})$/i);
-          if (td) mLabel = td[1][0].toUpperCase() + td[1].slice(1,3) + '/' + td[2].slice(-2);
-        }
-      }
-      pvMonths.push(mLabel);
+function renderResumoFluxo(fcRaw) {
+  const ptMon = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  // Encontra a seção "FLUXO DE CAIXA" (col1 exato) na aba FC
+  let secStart = -1;
+  for (let i = 0; i < fcRaw.length; i++) {
+    if (String(fcRaw[i][1]||'').trim().toUpperCase() === 'FLUXO DE CAIXA') { secStart = i; break; }
+  }
+  if (secStart < 0) return;
+
+  // Linha de cabeçalho com meses (col1 = "Categoria")
+  let hdrIdx = -1;
+  for (let i = secStart + 1; i < Math.min(secStart + 5, fcRaw.length); i++) {
+    if (/^categoria$/i.test(String(fcRaw[i][1]||'').trim())) { hdrIdx = i; break; }
+  }
+  if (hdrIdx < 0) return;
+
+  // Meses nos cols 4+ do cabeçalho
+  const hdrRow = fcRaw[hdrIdx];
+  const pvMonths = [], monthCols = [];
+  for (let c = 4; c < hdrRow.length; c++) {
+    const mRaw = String(hdrRow[c]||'').trim();
+    if (!mRaw) continue;
+    const serial = +mRaw;
+    if (!isNaN(serial) && serial > 40000 && serial < 60000) {
+      const d = new Date((serial - 25569) * 86400000);
+      pvMonths.push(ptMon[d.getUTCMonth()] + '/' + String(d.getUTCFullYear()).slice(2));
       monthCols.push(c);
     }
+  }
+  if (!pvMonths.length) return;
 
-    if (pvMonths.length) {
-      const fluxoThead = document.getElementById('resumo-fluxo-thead');
-      const fluxoTbody = document.getElementById('resumo-fluxo-tbody');
-      const fluxoTfoot = document.getElementById('resumo-fluxo-tfoot');
+  const fluxoThead = document.getElementById('resumo-fluxo-thead');
+  const fluxoTbody = document.getElementById('resumo-fluxo-tbody');
+  const fluxoTfoot = document.getElementById('resumo-fluxo-tfoot');
 
-      if (fluxoThead) {
-        fluxoThead.innerHTML = `<tr><th>Categoria</th>${pvMonths.map(m => `<th class="td-right">${m}</th>`).join('')}</tr>`;
+  if (fluxoThead) {
+    fluxoThead.innerHTML = `<tr><th>Categoria</th>${pvMonths.map(m => `<th class="td-right">${m}</th>`).join('')}</tr>`;
+  }
+
+  let tbodyHtml = '', tfootHtml = '';
+
+  for (let i = hdrIdx + 1; i < fcRaw.length; i++) {
+    const r = fcRaw[i] || [];
+    const label = String(r[1]||'').trim();
+    if (!label || /^nota:/i.test(label)) break;
+
+    const isSaldo    = /^saldo$/i.test(label);
+    const isEntradas = /^entradas$/i.test(label);
+    const isSaidas   = /^sa[íi]das$/i.test(label);
+
+    // Pula linhas auxiliares (saldo bancário, etc.)
+    if (!isSaldo && !isEntradas && !isSaidas) continue;
+
+    const cells = monthCols.map(c => {
+      const raw = r[c];
+      if (raw === undefined || raw === '' || raw === null) {
+        return `<td class="td-right" style="color:var(--text-muted)">—</td>`;
       }
+      const v = parseBRL(raw);
+      if (v === 0) return `<td class="td-right" style="color:var(--text-muted)">—</td>`;
+      const clr = v > 0 ? 'var(--green)' : 'var(--red)';
+      return `<td class="td-right" style="font-weight:700;color:${clr}">${fmt(v)}</td>`;
+    }).join('');
 
-      let tbodyHtml = '', tfootHtml = '';
-      let _secaoAtual = '';
-
-      for (let i = secEnd + 2; i < N; i++) {
-        const r = rows[i] || [];
-        const label = String(r[0] || '').trim();
-        if (!label) continue;
-
-        const isSaldo    = /^saldo/i.test(label);
-        const isEntradas = /^entradas?/i.test(label);
-        const isSaidas   = /^saídas?|^saidas?/i.test(label);
-        const isSecao    = isEntradas || isSaidas;
-        const isTotal    = /^total/i.test(label) || isSaldo;
-
-        if (isEntradas) _secaoAtual = 'entradas';
-        else if (isSaidas) _secaoAtual = 'saidas';
-
-        // Ignora linhas onde todos os valores dos meses são vazios (notas de rodapé da planilha)
-        const hasAnyValue = monthCols.some(c => r[c] !== undefined && r[c] !== '' && r[c] !== null && parseBRL(r[c]) !== 0);
-        if (!hasAnyValue && !isSecao && !isTotal) continue;
-
-        const cells = monthCols.map(c => {
-          const raw = r[c];
-          if (raw === undefined || raw === '' || raw === null) {
-            return `<td class="td-right" style="color:var(--text-muted)">—</td>`;
-          }
-          const v = parseBRL(raw);
-          if (v === 0) return `<td class="td-right" style="color:var(--text-muted)">—</td>`;
-          const clr = v > 0 ? 'var(--green)' : 'var(--red)';
-          const fw  = (isTotal || isSecao) ? 'font-weight:700;' : '';
-          return `<td class="td-right" style="${fw}color:${clr}">${fmt(v)}</td>`;
-        }).join('');
-
-        if (isSaldo) {
-          tfootHtml += `<tr class="tfoot-row"><td>${label}</td>${cells}</tr>`;
-        } else if (isSecao) {
-          const bg = isEntradas ? '#d1fae5' : '#fee2e2';
-          const clr = isEntradas ? 'var(--green)' : 'var(--red)';
-          tbodyHtml += `<tr style="background:${bg}"><td style="font-weight:700;color:${clr}">${label}</td>${cells}</tr>`;
-        } else if (isTotal) {
-          const bg = _secaoAtual === 'entradas' ? '#ecfdf5' : _secaoAtual === 'saidas' ? '#fff1f2' : '#f0f7fb';
-          tbodyHtml += `<tr style="font-weight:700;background:${bg}"><td>${label}</td>${cells}</tr>`;
-        } else {
-          const bg = _secaoAtual === 'entradas' ? 'rgba(16,185,129,0.05)' : _secaoAtual === 'saidas' ? 'rgba(239,68,68,0.05)' : '';
-          tbodyHtml += `<tr style="${bg ? 'background:' + bg : ''}"><td style="padding-left:20px">${label}</td>${cells}</tr>`;
-        }
-      }
-
-      if (fluxoTbody) fluxoTbody.innerHTML = tbodyHtml;
-      if (fluxoTfoot) fluxoTfoot.innerHTML = tfootHtml;
+    if (isSaldo) {
+      tfootHtml += `<tr class="tfoot-row"><td>${label}</td>${cells}</tr>`;
+    } else if (isEntradas) {
+      tbodyHtml += `<tr style="background:#d1fae5"><td style="font-weight:700;color:var(--green)">${label}</td>${cells}</tr>`;
+    } else if (isSaidas) {
+      tbodyHtml += `<tr style="background:#fee2e2"><td style="font-weight:700;color:var(--red)">${label}</td>${cells}</tr>`;
     }
   }
+
+  if (fluxoTbody) fluxoTbody.innerHTML = tbodyHtml;
+  if (fluxoTfoot) fluxoTfoot.innerHTML = tfootHtml;
 }
 
 function renderCarteira(rows, total) {
@@ -2115,6 +2104,7 @@ function loadAll() {
     renderFCKPIs(fc);
     renderFCTable(fc);
     renderFCCharts(fc);
+    renderResumoFluxo(raw);
   });
 
   fetchSheet('Formações', raw => {
