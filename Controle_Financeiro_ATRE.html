@@ -455,11 +455,6 @@ tr:last-child td { border-bottom: none; }
       </div>
       <div class="card">
         <div class="card-title"><span class="icon">💸</span> Contas Pagas – Transações</div>
-        <div class="dre-cat-tabs" id="cp-ano-tabs">
-          <button class="dre-cat-tab" onclick="setCPAno('2025',this)">2025</button>
-          <button class="dre-cat-tab" onclick="setCPAno('2026',this)">2026</button>
-          <button class="dre-cat-tab active" onclick="setCPAno('',this)">Todos</button>
-        </div>
         <div class="filters">
           <input type="text" id="cp-search" placeholder="🔍  Buscar por fornecedor..." oninput="filterCP()">
           <select id="cp-periodo" onchange="filterCP()">
@@ -1968,13 +1963,6 @@ function renderContas() {
   renderCPCategorias(CP_CATS);
   renderCPTable(MATRIZ_DATA.rows);
 
-  // Mostrar só os botões de ano que têm dados na tabela
-  const anosDisp = new Set((MATRIZ_DATA.rows || []).map(r => r.ano).filter(y => y));
-  document.querySelectorAll('#cp-ano-tabs .dre-cat-tab').forEach(btn => {
-    const y = btn.textContent.trim();
-    if (y === 'Todos') return;
-    btn.style.display = anosDisp.has(y) ? '' : 'none';
-  });
 }
 
 function renderCPCategorias(cats) {
