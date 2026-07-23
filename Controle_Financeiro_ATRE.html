@@ -1967,6 +1967,14 @@ function renderContas() {
 
   renderCPCategorias(CP_CATS);
   renderCPTable(MATRIZ_DATA.rows);
+
+  // Mostrar só os botões de ano que têm dados na tabela
+  const anosDisp = new Set((MATRIZ_DATA.rows || []).map(r => r.ano).filter(y => y));
+  document.querySelectorAll('#cp-ano-tabs .dre-cat-tab').forEach(btn => {
+    const y = btn.textContent.trim();
+    if (y === 'Todos') return;
+    btn.style.display = anosDisp.has(y) ? '' : 'none';
+  });
 }
 
 function renderCPCategorias(cats) {
@@ -2130,6 +2138,14 @@ function loadAll() {
   fetchSheet('CP.categorias', raw => {
     const cats = parseCPCategorias(raw);
     renderCPCategorias(cats);
+    // Total de Despesas desde 2025 — CP.Categorias col H (col7) da linha "Total de Despesas"
+    for (let i = 0; i < raw.length; i++) {
+      if (String(raw[i][0]||'').trim().toUpperCase().includes('TOTAL DE DESPESAS')) {
+        const v = Math.abs(parseBRL(raw[i][7]||''));
+        if (v) setText('cp-kpi-geral', fmt(v));
+        break;
+      }
+    }
   });
 
 
