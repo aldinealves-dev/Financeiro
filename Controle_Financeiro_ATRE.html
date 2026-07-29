@@ -105,6 +105,10 @@ tr:last-child td { border-bottom: none; }
 .fc-saldo-pos { color: var(--green); font-weight: 700; }
 .fc-saldo-neg { color: var(--red); font-weight: 700; }
 .hc-row td:first-child { font-weight: 600; }
+.company-switcher { display: flex; gap: 4px; background: rgba(255,255,255,.12); border-radius: 8px; padding: 3px; }
+.co-btn { padding: 5px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: .78rem; font-weight: 700; letter-spacing: .5px; background: transparent; color: rgba(255,255,255,.65); transition: all .15s; }
+.co-btn.active { background: #fff; color: var(--primary); }
+.co-btn:hover:not(.active) { color: #fff; background: rgba(255,255,255,.18); }
 .prog-bar-wrap { display: flex; align-items: center; gap: 10px; }
 .prog-bar { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
 .prog-bar-fill { height: 100%; border-radius: 4px; }
@@ -167,21 +171,31 @@ tr:last-child td { border-bottom: none; }
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 <aside class="sidebar">
   <div class="sidebar-brand">
-    <h1>ATRE</h1>
+    <h1 id="sidebar-company-name">ATRE</h1>
     <p>Controle Financeiro</p>
+    <div class="company-switcher" style="margin-top:10px">
+      <button class="co-btn active" id="co-atre" onclick="switchCompany('atre')">ATRE</button>
+      <button class="co-btn" id="co-tc01" onclick="switchCompany('tc01')">TC 01</button>
+    </div>
   </div>
   <nav class="sidebar-nav">
-    <div class="nav-section">Principal</div>
-    <div class="nav-item active" onclick="showPage('resumo',this)"><span class="icon">📊</span> Resumo</div>
-    <div class="nav-section">Carteiras</div>
-    <div class="nav-item" onclick="showPage('clube',this)"><span class="icon">👥</span> Partners Ouro</div>
-    <div class="nav-item" onclick="showPage('inadimplencia',this)"><span class="icon">⚠️</span> Inadimplência</div>
-    <div class="nav-item" onclick="showPage('formacoes',this)"><span class="icon">📚</span> Formações</div>
-    <div class="nav-section">Financeiro</div>
-    <div class="nav-item" onclick="showPage('fluxo',this)"><span class="icon">📈</span> Fluxo de Caixa</div>
-    <div class="nav-item" onclick="showPage('dre',this)"><span class="icon">📋</span> DRE Formações</div>
-    <div class="nav-section">Despesas</div>
-    <div class="nav-item" onclick="showPage('contas',this)"><span class="icon">💸</span> Contas Pagas</div>
+    <div id="atre-nav">
+      <div class="nav-section">Principal</div>
+      <div class="nav-item active" onclick="showPage('resumo',this)"><span class="icon">📊</span> Resumo</div>
+      <div class="nav-section">Carteiras</div>
+      <div class="nav-item" onclick="showPage('clube',this)"><span class="icon">👥</span> Partners Ouro</div>
+      <div class="nav-item" onclick="showPage('inadimplencia',this)"><span class="icon">⚠️</span> Inadimplência</div>
+      <div class="nav-item" onclick="showPage('formacoes',this)"><span class="icon">📚</span> Formações</div>
+      <div class="nav-section">Financeiro</div>
+      <div class="nav-item" onclick="showPage('fluxo',this)"><span class="icon">📈</span> Fluxo de Caixa</div>
+      <div class="nav-item" onclick="showPage('dre',this)"><span class="icon">📋</span> DRE Formações</div>
+      <div class="nav-section">Despesas</div>
+      <div class="nav-item" onclick="showPage('contas',this)"><span class="icon">💸</span> Contas Pagas</div>
+    </div>
+    <div id="tc01-nav" style="display:none">
+      <div class="nav-section">TC 01</div>
+      <div class="nav-item active" id="nav-tc01-resumo" onclick="showPageTC01('tc01-resumo',this)"><span class="icon">📊</span> Resumo</div>
+    </div>
   </nav>
   <div class="sidebar-footer">
     <p id="sidebar-periodo">Referência: —</p>
@@ -487,6 +501,38 @@ tr:last-child td { border-bottom: none; }
     </section>
 
 
+    <!-- TC 01 — RESUMO -->
+    <section class="page" id="page-tc01-resumo">
+      <div class="kpi-grid">
+        <div class="kpi-card teal"><div class="kpi-label">Saldo Bancário</div><div class="kpi-value" id="tc01-saldo">—</div><div class="kpi-sub">Itaú 01204-5 - TC 01</div></div>
+        <div class="kpi-card green"><div class="kpi-label">Receitas</div><div class="kpi-value" id="tc01-receitas">—</div><div class="kpi-sub" id="tc01-receitas-sub">Total recebido</div></div>
+        <div class="kpi-card red"><div class="kpi-label">Despesas</div><div class="kpi-value" id="tc01-despesas">—</div><div class="kpi-sub" id="tc01-despesas-sub">Total pago</div></div>
+        <div class="kpi-card blue"><div class="kpi-label">Resultado</div><div class="kpi-value" id="tc01-resultado">—</div><div class="kpi-sub">Receitas − Despesas</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">📋</span> Lançamentos</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Data</th>
+              <th>Descrição</th>
+              <th>Categoria</th>
+              <th class="td-right">Valor</th>
+              <th class="td-right">Saldo</th>
+            </tr></thead>
+            <tbody id="tc01-lancamentos-tbody">
+              <tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card" style="margin-top:0" id="tc01-config-notice" style="display:none">
+        <p style="color:var(--text-muted);font-size:.85rem;text-align:center;padding:8px 0">
+          ⚙️ Planilha TC 01 ainda não configurada. Crie a planilha e atualize <code>SHEET_ID_TC01</code> no código.
+        </p>
+      </div>
+    </section>
+
     <!-- DRE -->
     <section class="page" id="page-dre">
       <div id="dre-kpis" class="kpi-grid">
@@ -511,6 +557,7 @@ tr:last-child td { border-bottom: none; }
 // CONFIG
 // ============================================================
 const SHEET_ID = '1J1vkl2SsxJU4W52x5-SeSoC0mzehliEo';
+const SHEET_ID_TC01 = 'PENDENTE_ID_TC01'; // substituir pelo SHEET_ID real da planilha TC 01
 
 // ============================================================
 // DRE FV DATA (loaded from sheet)
@@ -2068,6 +2115,131 @@ function filterCP() {
   ));
 }
 
+
+// ============================================================
+// TC 01 — FETCH, PARSE, RENDER
+// ============================================================
+function fetchSheetTC01(sheetName, cb) {
+  const cbName = '__gviz_' + (++_cbIdx);
+  window[cbName] = function(resp) {
+    delete window[cbName];
+    document.getElementById('_s' + cbName)?.remove();
+    try {
+      const rows = (resp.table?.rows || []).map(row =>
+        (row.c || []).map(cell => (cell && cell.v !== null && cell.v !== undefined) ? String(cell.v) : '')
+      );
+      cb(rows);
+    } catch (e) { console.error('fetchSheetTC01', sheetName, e); cb([]); }
+  };
+  const s = document.createElement('script');
+  s.id = '_s' + cbName;
+  s.onerror = () => { delete window[cbName]; cb([]); };
+  s.src = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID_TC01 +
+    '/gviz/tq?tqx=out:json;responseHandler:' + cbName +
+    '&sheet=' + encodeURIComponent(sheetName) + '&headers=0';
+  document.head.appendChild(s);
+}
+
+let _tc01Loaded = false;
+
+function loadTC01() {
+  if (_tc01Loaded) return;
+  if (SHEET_ID_TC01 === 'PENDENTE_ID_TC01') {
+    const notice = document.getElementById('tc01-config-notice');
+    if (notice) notice.style.display = '';
+    const tbody = document.getElementById('tc01-lancamentos-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Planilha TC 01 ainda não configurada. Atualize SHEET_ID_TC01 no código.</td></tr>';
+    return;
+  }
+  _tc01Loaded = true;
+  fetchSheetTC01('Resumo', raw => renderTC01Resumo(raw));
+  fetchSheetTC01('Lancamentos', raw => renderTC01Lancamentos(raw));
+}
+
+function renderTC01Resumo(raw) {
+  let receitas = 0, despesas = 0;
+  for (const row of raw) {
+    const lbl = String(row[0] || '').trim().toUpperCase();
+    const val = parseBRL(row[1] || '');
+    if (lbl === 'SALDO')     { setText('tc01-saldo', val ? fmt(Math.abs(val)) : '—'); }
+    if (lbl === 'RECEITAS')  { receitas = val; setText('tc01-receitas', val ? fmt(val) : '—'); }
+    if (lbl === 'DESPESAS')  { despesas = Math.abs(val); setText('tc01-despesas', despesas ? fmt(despesas) : '—'); }
+    if (lbl === 'PERIODO')   {
+      const sub = row[1] || '';
+      if (sub) {
+        const el = document.getElementById('tc01-receitas-sub');
+        if (el) el.textContent = sub;
+      }
+    }
+  }
+  const res = receitas - despesas;
+  const resEl = document.getElementById('tc01-resultado');
+  if (resEl) {
+    resEl.textContent = fmt(Math.abs(res));
+    resEl.style.color = res >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+}
+
+function renderTC01Lancamentos(raw) {
+  const tbody = document.getElementById('tc01-lancamentos-tbody');
+  if (!tbody) return;
+  const rows = raw.filter(r => r[0] && String(r[0]).toUpperCase() !== 'DATA');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Sem lançamentos</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => {
+    const val   = parseBRL(r[3] || '');
+    const saldo = parseBRL(r[4] || '');
+    const vCls  = val < 0 ? ' style="color:var(--red)"' : (val > 0 ? ' style="color:var(--green)"' : '');
+    return `<tr>
+      <td>${r[0] || '—'}</td>
+      <td>${r[1] || '—'}</td>
+      <td>${r[2] || '—'}</td>
+      <td class="td-right"${vCls}>${val ? fmt(val) : '—'}</td>
+      <td class="td-right">${saldo ? fmt(saldo) : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// COMPANY SWITCHER
+// ============================================================
+function switchCompany(co) {
+  const isTC01 = co === 'tc01';
+  document.getElementById('co-atre').classList.toggle('active', !isTC01);
+  document.getElementById('co-tc01').classList.toggle('active', isTC01);
+  document.getElementById('sidebar-company-name').textContent = isTC01 ? 'TC 01' : 'ATRE';
+  document.getElementById('atre-nav').style.display = isTC01 ? 'none' : '';
+  document.getElementById('tc01-nav').style.display  = isTC01 ? '' : 'none';
+  if (isTC01) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-tc01-resumo').classList.add('active');
+    document.getElementById('nav-tc01-resumo').classList.add('active');
+    setText('page-title', 'TC 01 — Resumo');
+    loadTC01();
+  } else {
+    const firstATRE = document.querySelector('#atre-nav .nav-item');
+    showPage('resumo', firstATRE);
+  }
+  if (window.innerWidth <= 768) {
+    document.querySelector('.sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('active');
+  }
+}
+
+function showPageTC01(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#tc01-nav .nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+  setText('page-title', 'TC 01 — Resumo');
+  if (window.innerWidth <= 768) {
+    document.querySelector('.sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('active');
+  }
+}
 
 // ============================================================
 // LOAD ALL
