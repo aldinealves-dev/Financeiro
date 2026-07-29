@@ -194,30 +194,7 @@ tr:last-child td { border-bottom: none; }
       <div class="nav-section">Carteiras</div>
       <div class="nav-item" onclick="showPage('clube',this)"><span class="icon">👥</span> Partners Ouro</div>
       <div class="nav-item" onclick="showPage('inadimplencia',this)"><span class="icon">⚠️</span> Inadimplência</div>
-      <div class="nav-item" id="nav-formacoes" onclick="navFormacoes(this)"><span class="icon">📚</span> Formações</div>
-      <div id="formacoes-subnav" style="display:none">
-        <div class="nav-subnav">
-          <div class="nav-subnav-cats">
-            <span class="nav-subcat active" id="fcat-lideres" onclick="showFormCat('lideres',this)">Líderes</span>
-            <span class="nav-subcat" id="fcat-vendas" onclick="showFormCat('vendas',this)">Vendas</span>
-            <span class="nav-subcat" id="fcat-neg" onclick="showFormCat('negociacao',this)">Negociação</span>
-          </div>
-          <div id="fturmas-lideres" class="nav-turmas-row">
-            <span class="nav-turma-btn" onclick="selectFormTurma('FLT1',this)">FLT1</span>
-            <span class="nav-turma-btn" onclick="selectFormTurma('FLT2',this)">FLT2</span>
-            <span class="nav-turma-btn" onclick="selectFormTurma('FLT3',this)">FLT3</span>
-          </div>
-          <div id="fturmas-vendas" class="nav-turmas-row" style="display:none">
-            <span class="nav-turma-btn" onclick="selectFormTurma('FVT1',this)">FVT1</span>
-            <span class="nav-turma-btn" onclick="selectFormTurma('FVT2',this)">FVT2</span>
-            <span class="nav-turma-btn" onclick="selectFormTurma('FVT3',this)">FVT3</span>
-            <span class="nav-turma-btn" onclick="selectFormTurma('FVT4',this)">FVT4</span>
-          </div>
-          <div id="fturmas-negociacao" class="nav-turmas-row" style="display:none">
-            <span class="nav-turma-btn" onclick="selectFormTurma('FNT1',this)">FNT1</span>
-          </div>
-        </div>
-      </div>
+      <div class="nav-item" onclick="showPage('formacoes',this)"><span class="icon">📚</span> Formações</div>
       <div class="nav-section">Financeiro</div>
       <div class="nav-item" onclick="showPage('fluxo',this)"><span class="icon">📈</span> Fluxo de Caixa</div>
       <div class="nav-item" onclick="showPage('dre',this)"><span class="icon">📋</span> DRE Formações</div>
@@ -457,6 +434,27 @@ tr:last-child td { border-bottom: none; }
       <div id="form-kpis" class="kpi-grid">
         <div class="kpi-card blue"><div class="kpi-label">Total</div><div class="kpi-value" id="form-total">—</div><div class="kpi-sub">Qt vendida</div></div>
         <div class="kpi-card teal"><div class="kpi-label">Faturamento</div><div class="kpi-value" id="form-fat">—</div></div>
+      </div>
+      <div class="dre-cat-tabs" id="form-cat-tabs" style="margin-bottom:8px">
+        <button class="dre-cat-tab active" id="fcat-lideres" onclick="showFormCat('lideres',this)">Líderes</button>
+        <button class="dre-cat-tab" id="fcat-vendas" onclick="showFormCat('vendas',this)">Vendas</button>
+        <button class="dre-cat-tab" id="fcat-neg" onclick="showFormCat('negociacao',this)">Negociação</button>
+      </div>
+      <div id="form-turma-tabs" style="margin-bottom:16px">
+        <div id="fturmas-lideres" class="dre-tabs">
+          <button class="dre-tab" onclick="selectFormTurma('FLT1',this)">FLT1</button>
+          <button class="dre-tab" onclick="selectFormTurma('FLT2',this)">FLT2</button>
+          <button class="dre-tab" onclick="selectFormTurma('FLT3',this)">FLT3</button>
+        </div>
+        <div id="fturmas-vendas" class="dre-tabs" style="display:none">
+          <button class="dre-tab" onclick="selectFormTurma('FVT1',this)">FVT1</button>
+          <button class="dre-tab" onclick="selectFormTurma('FVT2',this)">FVT2</button>
+          <button class="dre-tab" onclick="selectFormTurma('FVT3',this)">FVT3</button>
+          <button class="dre-tab" onclick="selectFormTurma('FVT4',this)">FVT4</button>
+        </div>
+        <div id="fturmas-negociacao" class="dre-tabs" style="display:none">
+          <button class="dre-tab" onclick="selectFormTurma('FNT1',this)">FNT1</button>
+        </div>
       </div>
       <div class="card" id="form-summary-card" style="display:none">
         <div class="card-title" id="form-summary-title"><span class="icon">📊</span> Resumo</div>
@@ -1994,6 +1992,7 @@ function renderFormacoes(data) {
   }
 
   renderFormacoesTable(data);
+  showFormCat('lideres', document.getElementById('fcat-lideres'));
 }
 
 function renderFormacoesTable(data) {
@@ -2182,17 +2181,10 @@ const FORM_TURMAS = {
   FNT1: { label: 'Form. Negociação - Set/26', match: t => t === 'FNT1' }
 };
 
-function navFormacoes(el) {
-  showPage('formacoes', el);
-  const subnav = document.getElementById('formacoes-subnav');
-  if (subnav) subnav.style.display = '';
-  showFormCat('lideres', document.getElementById('fcat-lideres'));
-}
-
 function showFormCat(cat, btn) {
-  document.querySelectorAll('#formacoes-subnav .nav-subcat').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#form-cat-tabs .dre-cat-tab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  document.querySelectorAll('#formacoes-subnav .nav-turma-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#form-turma-tabs .dre-tab').forEach(b => b.classList.remove('active'));
   ['lideres','vendas','negociacao'].forEach(c => {
     const el = document.getElementById('fturmas-' + c);
     if (el) el.style.display = c === cat ? '' : 'none';
@@ -2205,17 +2197,13 @@ function showFormCat(cat, btn) {
 }
 
 function selectFormTurma(turmaId, btn) {
-  document.querySelectorAll('#formacoes-subnav .nav-turma-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#form-turma-tabs .dre-tab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   const info = FORM_TURMAS[turmaId];
   if (!info) return;
   const filtered = FORMACOES_DATA.filter(d => info.match(d.turma));
   renderFormacoesTable(filtered);
   _renderFormSummary(null, turmaId, filtered);
-  if (window.innerWidth <= 768) {
-    document.querySelector('.sidebar').classList.remove('open');
-    document.getElementById('sidebar-overlay').classList.remove('active');
-  }
 }
 
 function _renderFormSummary(cat, turmaId, data) {
