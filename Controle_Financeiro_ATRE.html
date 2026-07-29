@@ -105,6 +105,15 @@ tr:last-child td { border-bottom: none; }
 .fc-saldo-pos { color: var(--green); font-weight: 700; }
 .fc-saldo-neg { color: var(--red); font-weight: 700; }
 .hc-row td:first-child { font-weight: 600; }
+.nav-subnav { padding: 2px 8px 8px 24px; }
+.nav-subnav-cats { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 7px; }
+.nav-subcat { padding: 3px 11px; border-radius: 5px; font-size: .71rem; font-weight: 700; cursor: pointer; background: rgba(255,255,255,.1); color: rgba(255,255,255,.6); transition: all .15s; letter-spacing: .3px; }
+.nav-subcat:hover { background: rgba(255,255,255,.18); color: #fff; }
+.nav-subcat.active { background: var(--accent2); color: #fff; }
+.nav-turmas-row { display: flex; gap: 4px; flex-wrap: wrap; }
+.nav-turma-btn { padding: 2px 8px; border-radius: 4px; font-size: .68rem; font-weight: 700; cursor: pointer; background: rgba(255,255,255,.07); color: rgba(255,255,255,.5); transition: all .15s; border: 1px solid rgba(255,255,255,.1); letter-spacing: .3px; }
+.nav-turma-btn:hover { background: rgba(255,255,255,.15); color: rgba(255,255,255,.85); }
+.nav-turma-btn.active { background: rgba(255,255,255,.22); color: #fff; border-color: rgba(255,255,255,.35); }
 .company-switcher { display: flex; gap: 4px; background: rgba(255,255,255,.12); border-radius: 8px; padding: 3px; }
 .co-btn { padding: 5px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: .78rem; font-weight: 700; letter-spacing: .5px; background: transparent; color: rgba(255,255,255,.65); transition: all .15s; }
 .co-btn.active { background: #fff; color: var(--primary); }
@@ -185,7 +194,30 @@ tr:last-child td { border-bottom: none; }
       <div class="nav-section">Carteiras</div>
       <div class="nav-item" onclick="showPage('clube',this)"><span class="icon">👥</span> Partners Ouro</div>
       <div class="nav-item" onclick="showPage('inadimplencia',this)"><span class="icon">⚠️</span> Inadimplência</div>
-      <div class="nav-item" onclick="showPage('formacoes',this)"><span class="icon">📚</span> Formações</div>
+      <div class="nav-item" id="nav-formacoes" onclick="navFormacoes(this)"><span class="icon">📚</span> Formações</div>
+      <div id="formacoes-subnav" style="display:none">
+        <div class="nav-subnav">
+          <div class="nav-subnav-cats">
+            <span class="nav-subcat active" id="fcat-lideres" onclick="showFormCat('lideres',this)">Líderes</span>
+            <span class="nav-subcat" id="fcat-vendas" onclick="showFormCat('vendas',this)">Vendas</span>
+            <span class="nav-subcat" id="fcat-neg" onclick="showFormCat('negociacao',this)">Negociação</span>
+          </div>
+          <div id="fturmas-lideres" class="nav-turmas-row">
+            <span class="nav-turma-btn" onclick="selectFormTurma('FLT1',this)">FLT1</span>
+            <span class="nav-turma-btn" onclick="selectFormTurma('FLT2',this)">FLT2</span>
+            <span class="nav-turma-btn" onclick="selectFormTurma('FLT3',this)">FLT3</span>
+          </div>
+          <div id="fturmas-vendas" class="nav-turmas-row" style="display:none">
+            <span class="nav-turma-btn" onclick="selectFormTurma('FVT1',this)">FVT1</span>
+            <span class="nav-turma-btn" onclick="selectFormTurma('FVT2',this)">FVT2</span>
+            <span class="nav-turma-btn" onclick="selectFormTurma('FVT3',this)">FVT3</span>
+            <span class="nav-turma-btn" onclick="selectFormTurma('FVT4',this)">FVT4</span>
+          </div>
+          <div id="fturmas-negociacao" class="nav-turmas-row" style="display:none">
+            <span class="nav-turma-btn" onclick="selectFormTurma('FNT1',this)">FNT1</span>
+          </div>
+        </div>
+      </div>
       <div class="nav-section">Financeiro</div>
       <div class="nav-item" onclick="showPage('fluxo',this)"><span class="icon">📈</span> Fluxo de Caixa</div>
       <div class="nav-item" onclick="showPage('dre',this)"><span class="icon">📋</span> DRE Formações</div>
@@ -425,6 +457,20 @@ tr:last-child td { border-bottom: none; }
       <div id="form-kpis" class="kpi-grid">
         <div class="kpi-card blue"><div class="kpi-label">Total</div><div class="kpi-value" id="form-total">—</div><div class="kpi-sub">Qt vendida</div></div>
         <div class="kpi-card teal"><div class="kpi-label">Faturamento</div><div class="kpi-value" id="form-fat">—</div></div>
+      </div>
+      <div class="card" id="form-summary-card" style="display:none">
+        <div class="card-title" id="form-summary-title"><span class="icon">📊</span> Resumo</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Treinamento</th>
+              <th class="td-center">QT</th>
+              <th class="td-center">Faturamento</th>
+              <th class="td-center">Ticket Médio</th>
+            </tr></thead>
+            <tbody id="form-summary-tbody"></tbody>
+          </table>
+        </div>
       </div>
       <div class="card">
         <div class="card-title"><span class="icon">📚</span> Inscritos – Formações</div>
@@ -2115,6 +2161,106 @@ function filterCP() {
   ));
 }
 
+
+// ============================================================
+// FORMAÇÕES — NAVEGAÇÃO POR CATEGORIA / TURMA
+// ============================================================
+const FORM_CATS = {
+  lideres:    { label: 'Líderes',    match: t => /^FL/i.test(t) },
+  vendas:     { label: 'Vendas',     match: t => /^FV/i.test(t) },
+  negociacao: { label: 'Negociação', match: t => /^FN/i.test(t) }
+};
+
+const FORM_TURMAS = {
+  FLT1: { label: 'Form. Líderes T1 - Dez/25', match: t => t === 'FLT1' },
+  FLT2: { label: 'Form. Líderes T2 - Jan/26', match: t => t === 'FLT2' },
+  FLT3: { label: 'Form. Líderes T3 - Jun/26', match: t => t === 'FLT3' },
+  FVT1: { label: 'Form. Vendas T1 - Mar/26',  match: t => t === 'FVT1' },
+  FVT2: { label: 'Form. Vendas T2 - Mar/26',  match: t => t === 'FVT2' },
+  FVT3: { label: 'Form. Vendas T3 - Abr/26',  match: t => t === 'FVT3' },
+  FVT4: { label: 'Form. Vendas T4 - Jun/26',  match: t => t === 'FVT4' },
+  FNT1: { label: 'Form. Negociação - Set/26', match: t => t === 'FNT1' }
+};
+
+function navFormacoes(el) {
+  showPage('formacoes', el);
+  const subnav = document.getElementById('formacoes-subnav');
+  if (subnav) subnav.style.display = '';
+  showFormCat('lideres', document.getElementById('fcat-lideres'));
+}
+
+function showFormCat(cat, btn) {
+  document.querySelectorAll('#formacoes-subnav .nav-subcat').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('#formacoes-subnav .nav-turma-btn').forEach(b => b.classList.remove('active'));
+  ['lideres','vendas','negociacao'].forEach(c => {
+    const el = document.getElementById('fturmas-' + c);
+    if (el) el.style.display = c === cat ? '' : 'none';
+  });
+  const catInfo = FORM_CATS[cat];
+  if (!catInfo) return;
+  const catData = FORMACOES_DATA.filter(d => catInfo.match(d.turma));
+  renderFormacoesTable(catData);
+  _renderFormSummary(cat, null, catData);
+}
+
+function selectFormTurma(turmaId, btn) {
+  document.querySelectorAll('#formacoes-subnav .nav-turma-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const info = FORM_TURMAS[turmaId];
+  if (!info) return;
+  const filtered = FORMACOES_DATA.filter(d => info.match(d.turma));
+  renderFormacoesTable(filtered);
+  _renderFormSummary(null, turmaId, filtered);
+  if (window.innerWidth <= 768) {
+    document.querySelector('.sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('active');
+  }
+}
+
+function _renderFormSummary(cat, turmaId, data) {
+  const card  = document.getElementById('form-summary-card');
+  const tbody = document.getElementById('form-summary-tbody');
+  const title = document.getElementById('form-summary-title');
+  if (!card || !tbody) return;
+
+  const _fmtBRL = v => 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  let rows, titleText;
+  if (turmaId) {
+    const info = FORM_TURMAS[turmaId];
+    const qt   = data.length;
+    const fat  = data.reduce((s, d) => s + d.valorBruto, 0);
+    const tick = qt ? fat / qt : 0;
+    const name = info.label;
+    rows = [{ name, qt, fat, tick }];
+    titleText = info.label + ' — Resumo';
+  } else {
+    const catInfo = FORM_CATS[cat];
+    titleText = catInfo.label + ' — Resumo por Turma';
+    const map = {};
+    data.forEach(d => {
+      const code = d.turma;
+      const displayName = (FORM_TURMAS[code] || {}).label || code;
+      if (!map[code]) map[code] = { name: displayName, qt: 0, fat: 0 };
+      map[code].qt++;
+      map[code].fat += d.valorBruto;
+    });
+    rows = Object.values(map).map(r => ({ ...r, tick: r.qt ? r.fat / r.qt : 0 }));
+  }
+
+  if (title) title.innerHTML = `<span class="icon">📊</span> ${titleText}`;
+  tbody.innerHTML = rows.length
+    ? rows.map(r => `<tr>
+        <td>${r.name}</td>
+        <td class="td-center">${r.qt}</td>
+        <td class="td-center">${_fmtBRL(r.fat)}</td>
+        <td class="td-center">${_fmtBRL(r.tick)}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" style="text-align:center;color:var(--text-muted)">Sem dados para esta turma</td></tr>';
+
+  card.style.display = '';
+}
 
 // ============================================================
 // TC 01 — FETCH, PARSE, RENDER
