@@ -2290,17 +2290,19 @@ function loadTC01() {
   if (_tc01Loaded) return;
   _tc01Loaded = true;
 
-  const EXCLUIR = ['Adiantamento de Clientes', 'Devoluções de Vendas de Serviços',
-                   'Saída de Transferência',   'Entrada de Transferência'];
+  const EXCLUIR_TUDO  = ['Adiantamento de Clientes', 'Devoluções de Vendas de Serviços',
+                         'Saída de Transferência',   'Entrada de Transferência'];
+  const NAO_RECEITA   = ['Aporte']; // capital de sócios — não conta como receita operacional
   let receitas = 0, despesas = 0, saldo = 0;
   const catMap = {};
 
   for (const l of TC01_LANCAMENTOS) {
     saldo += l.valor;
-    if (EXCLUIR.includes(l.cat)) continue;
+    if (EXCLUIR_TUDO.includes(l.cat)) continue;
+    catMap[l.cat] = (catMap[l.cat] || 0) + l.valor;
+    if (NAO_RECEITA.includes(l.cat)) continue;
     if (l.valor > 0) receitas += l.valor;
     else             despesas += Math.abs(l.valor);
-    catMap[l.cat] = (catMap[l.cat] || 0) + l.valor;
   }
 
   const fmtBRL = v => 'R$ ' + Math.round(Math.abs(v)).toLocaleString('pt-BR');
