@@ -436,6 +436,7 @@ tr:last-child td { border-bottom: none; }
         <div class="kpi-card teal"><div class="kpi-label">Faturamento</div><div class="kpi-value" id="form-fat">—</div></div>
       </div>
       <div class="dre-cat-tabs" id="form-cat-tabs" style="margin-bottom:8px">
+        <button class="dre-cat-tab" id="fcat-todos" onclick="showFormCat('todos',this)">Todos</button>
         <button class="dre-cat-tab active" id="fcat-lideres" onclick="showFormCat('lideres',this)">Líderes</button>
         <button class="dre-cat-tab" id="fcat-vendas" onclick="showFormCat('vendas',this)">Vendas</button>
         <button class="dre-cat-tab" id="fcat-neg" onclick="showFormCat('negociacao',this)">Negociação</button>
@@ -2165,9 +2166,10 @@ function filterCP() {
 // FORMAÇÕES — NAVEGAÇÃO POR CATEGORIA / TURMA
 // ============================================================
 const FORM_CATS = {
-  lideres:    { label: 'Líderes',    match: t => /^FL/i.test(t) },
-  vendas:     { label: 'Vendas',     match: t => /^FV/i.test(t) },
-  negociacao: { label: 'Negociação', match: t => /^FN/i.test(t) }
+  todos:      { label: 'Todas as Formações', match: t => true           },
+  lideres:    { label: 'Líderes',            match: t => /^FL/i.test(t) },
+  vendas:     { label: 'Vendas',             match: t => /^FV/i.test(t) },
+  negociacao: { label: 'Negociação',         match: t => /^FN/i.test(t) }
 };
 
 const FORM_TURMAS = {
@@ -2187,7 +2189,7 @@ function showFormCat(cat, btn) {
   document.querySelectorAll('#form-turma-tabs .dre-tab').forEach(b => b.classList.remove('active'));
   ['lideres','vendas','negociacao'].forEach(c => {
     const el = document.getElementById('fturmas-' + c);
-    if (el) el.style.display = c === cat ? '' : 'none';
+    if (el) el.style.display = (cat !== 'todos' && c === cat) ? '' : 'none';
   });
   const catInfo = FORM_CATS[cat];
   if (!catInfo) return;
