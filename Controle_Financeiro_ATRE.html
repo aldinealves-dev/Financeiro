@@ -559,11 +559,8 @@ tr:last-child td { border-bottom: none; }
         <div class="table-wrap">
           <table>
             <thead><tr>
-              <th>Data</th>
-              <th>Cliente ou Fornecedor</th>
               <th>Categoria</th>
-              <th>Projeto</th>
-              <th class="td-right">Valor</th>
+              <th class="td-right">Total</th>
             </tr></thead>
             <tbody id="tc01-lancamentos-tbody">
               <tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr>
@@ -2287,14 +2284,17 @@ function loadTC01() {
   if (_tc01Loaded) return;
   _tc01Loaded = true;
 
-  const INTERNAL = ['Saída de Transferência', 'Entrada de Transferência'];
+  const EXCLUIR = ['Adiantamento de Clientes', 'Devoluções de Vendas de Serviços',
+                   'Saída de Transferência',   'Entrada de Transferência'];
   let receitas = 0, despesas = 0, saldo = 0;
+  const catMap = {};
 
   for (const l of TC01_LANCAMENTOS) {
     saldo += l.valor;
-    if (INTERNAL.includes(l.cat)) continue;
+    if (EXCLUIR.includes(l.cat)) continue;
     if (l.valor > 0) receitas += l.valor;
     else             despesas += Math.abs(l.valor);
+    catMap[l.cat] = (catMap[l.cat] || 0) + l.valor;
   }
 
   const fmtBRL = v => 'R$ ' + Math.round(Math.abs(v)).toLocaleString('pt-BR');
@@ -2320,16 +2320,14 @@ function loadTC01() {
   const tbody = document.getElementById('tc01-lancamentos-tbody');
   if (!tbody) return;
 
-  tbody.innerHTML = TC01_LANCAMENTOS.map(l => {
-    const isPos = l.valor > 0;
+  const entries = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
+  tbody.innerHTML = entries.map(([cat, total]) => {
+    const isPos = total > 0;
     const cor   = isPos ? 'var(--green)' : 'var(--red)';
     const sinal = isPos ? '+' : '−';
-    const vFmt  = sinal + ' ' + Math.abs(l.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const vFmt  = sinal + ' ' + Math.abs(total).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     return `<tr>
-      <td style="white-space:nowrap">${l.data}</td>
-      <td>${l.cli}</td>
-      <td>${l.cat}</td>
-      <td>${l.proj || '—'}</td>
+      <td>${cat}</td>
       <td class="td-right" style="color:${cor};font-weight:600">${vFmt}</td>
     </tr>`;
   }).join('');
