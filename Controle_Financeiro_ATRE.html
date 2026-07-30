@@ -554,21 +554,27 @@ tr:last-child td { border-bottom: none; }
         <div class="kpi-card red"><div class="kpi-label">Despesas</div><div class="kpi-value" id="tc01-despesas">—</div><div class="kpi-sub" id="tc01-despesas-sub">Total pago</div></div>
         <div class="kpi-card blue"><div class="kpi-label">Resultado</div><div class="kpi-value" id="tc01-resultado">—</div><div class="kpi-sub">Receitas − Despesas</div></div>
       </div>
-      <div class="card">
-        <div class="card-title"><span class="icon">📋</span> Lançamentos</div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr>
-              <th>Categoria</th>
-              <th class="td-right">Total</th>
-            </tr></thead>
-            <tbody id="tc01-lancamentos-tbody">
-              <tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr>
-            </tbody>
-          </table>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="icon">📋</span> Lançamentos por Categoria</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Categoria</th>
+                <th class="td-right">Total</th>
+              </tr></thead>
+              <tbody id="tc01-lancamentos-tbody">
+                <tr><td colspan="2" style="text-align:center;color:var(--text-muted)">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="icon">📊</span> Distribuição por Categoria</div>
+          <div class="chart-wrap"><canvas id="chartTC01Cat"></canvas></div>
         </div>
       </div>
-      <div class="card" style="margin-top:0" id="tc01-config-notice" style="display:none">
+      <div class="card" style="display:none" id="tc01-config-notice">
         <p style="color:var(--text-muted);font-size:.85rem;text-align:center;padding:8px 0">
           ⚙️ Planilha TC 01 ainda não configurada. Crie a planilha e atualize <code>SHEET_ID_TC01</code> no código.
         </p>
@@ -800,7 +806,7 @@ Chart.defaults.set('plugins.datalabels', { display: false });
 const PAL = ['#1e88a8','#2a9d5c','#e07a28','#c0392b','#8e44ad','#d4aa2a','#16a085'];
 const _charts = {};
 function mkChart(id, cfg) {
-  if (_charts[id]) _charts[id].destroy();
+  (Chart.getChart(id) || _charts[id])?.destroy();
   _charts[id] = new Chart(document.getElementById(id), cfg);
   return _charts[id];
 }
@@ -2331,6 +2337,44 @@ function loadTC01() {
       <td class="td-right" style="color:${cor};font-weight:600">${vFmt}</td>
     </tr>`;
   }).join('');
+
+  // Gráfico de donut por categoria (valor absoluto)
+  const CAT_COLORS = {
+    'Publicidade':       '#2a9d5c',
+    'Aporte':            '#1e88a8',
+    'Cartório':          '#c0392b',
+    'Sistemas':          '#e07a28',
+    'ISS':               '#d4aa2a',
+    'COFINS':            '#8e44ad',
+    'Tarifas Bancárias': '#7f8c8d',
+    'PIS':               '#bdc3c7',
+  };
+  const chartLabels = entries.map(([cat]) => cat);
+  const chartData   = entries.map(([, v]) => Math.abs(v));
+  const chartColors = chartLabels.map(l => CAT_COLORS[l] || "#95a5a6");
+  mkChart('chartTC01Cat', {
+    type: 'doughnut',
+    data: {
+      labels: chartLabels,
+      datasets: [{ data: chartData, backgroundColor: chartColors, borderWidth: 2, borderColor: "#fff" }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 10, font: { size: 11 }, boxWidth: 12 } },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.label + ': R$ ' + ctx.parsed.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) } },
+        datalabels: {
+          display: true, color: '#fff', font: { size: 11, weight: '700' },
+          formatter: (v, ctx) => {
+            const total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+            const pct = v / total * 100;
+            return pct < 5 ? '' : pct.toFixed(1).replace('.', ',') + '%';
+          }
+        }
+      },
+      cutout: '60%'
+    }
+  });
 }
 
 // ============================================================
