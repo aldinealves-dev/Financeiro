@@ -905,7 +905,7 @@ function parseClube(raw) {
   return out;
 }
 
-function parseFC(raw) {
+function parseFC(raw, fcTotais) {
   const N = raw.length;
 
   // Find entradas row (MENSAL TOTAL)
@@ -958,12 +958,10 @@ function parseFC(raw) {
     });
   }
 
-  const entradas = getVals(entIdx);
-  const saidas   = getVals(saiIdx).map(v => Math.abs(v));
-  // Saldo correto conforme planilha origem (ago/26 → jul/27)
-  const SALDO_OK = [236535, 56739, -166084, -314736, -466386, -680611, -859970, -1086348, -1330463, -1569171, -1808202, -2051646];
-  const saldoRaw = getVals(salIdx);
-  const saldo    = saldoRaw.length === SALDO_OK.length ? SALDO_OK : saldoRaw;
+  // Usa linhas 41/42/43 da planilha quando disponíveis (fonte correta)
+  const entradas = (fcTotais && fcTotais.entradas.some(v => v !== 0)) ? fcTotais.entradas : getVals(entIdx);
+  const saidas   = (fcTotais && fcTotais.saidas.some(v => v !== 0))   ? fcTotais.saidas.map(v => Math.abs(v)) : getVals(saiIdx).map(v => Math.abs(v));
+  const saldo    = (fcTotais && fcTotais.saldo.some(v => v !== 0))    ? fcTotais.saldo   : getVals(salIdx);
 
   // Saldo inicial
   let saldoIni = 509831;
@@ -1003,9 +1001,15 @@ function parseFC(raw) {
     allRows.push({ label, type, vals });
   }
 
-  // Corrige vals da linha SALDO em allRows com os valores confirmados na origem
-  const salRowObj = allRows.find(r => r.type === 'saldo');
-  if (salRowObj && salRowObj.vals.length === SALDO_OK.length) salRowObj.vals = SALDO_OK;
+  // Substitui vals das linhas entradas/saidas/saldo em allRows pelos valores da origem (linhas 41-43)
+  if (fcTotais) {
+    const entRow = allRows.find(r => r.type === 'entradas');
+    const saiRow = allRows.find(r => r.type === 'total-geral');
+    const salRow = allRows.find(r => r.type === 'saldo');
+    if (entRow && fcTotais.entradas.some(v => v !== 0)) entRow.vals = fcTotais.entradas;
+    if (saiRow && fcTotais.saidas.some(v => v !== 0))  saiRow.vals = fcTotais.saidas.map(v => Math.abs(v));
+    if (salRow && fcTotais.saldo.some(v => v !== 0))   salRow.vals = fcTotais.saldo;
+  }
 
   return { months, entradas, saidas, saldo, despFixas: months.map(() => 0), antec: months.map(() => 0), saldoIni, allRows };
 }
@@ -2452,11 +2456,20 @@ function loadAll() {
   }, { range: 'A:Z' });
 
   fetchSheet('FC', raw => {
-    const fc = parseFC(raw);
-    renderFCKPIs(fc);
-    renderFCTable(fc);
-    renderFCCharts(fc);
-    renderResumoFluxo(raw);
+    // Busca linhas 41-43 da aba FC: entradas, saídas e saldo reais
+    fetchSheet('FC', totaisRaw => {
+      const parseRow = r => (r || []).slice(0, 12).map(v => { const n = parseBRL(String(v)); return isNaN(n) ? 0 : n; });
+      const fcTotais = {
+        entradas: parseRow(totaisRaw[0]), // linha 41
+        saidas:   parseRow(totaisRaw[1]), // linha 42
+        saldo:    parseRow(totaisRaw[2])  // linha 43
+      };
+      const fc = parseFC(raw, fcTotais);
+      renderFCKPIs(fc);
+      renderFCTable(fc);
+      renderFCCharts(fc);
+      renderResumoFluxo(raw);
+    }, { range: 'E41:P43' });
   });
 
   fetchSheet('Formações', raw => {
