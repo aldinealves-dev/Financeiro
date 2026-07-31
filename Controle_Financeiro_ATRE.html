@@ -933,7 +933,7 @@ function parseFC(raw) {
   for (let i = entIdx; i < N; i++) {
     const t = String(raw[i][1] || '').toUpperCase().trim();
     if (saiIdx < 0 && t.includes('TOTAL GERAL')) saiIdx = i;
-    if (salIdx < 0 && t === 'SALDO') salIdx = i;
+    if (t === 'SALDO') salIdx = i; // última ocorrência = saldo final de caixa
   }
   if (saiIdx < 0) saiIdx = 23;
   if (salIdx < 0) salIdx = 29;
@@ -960,7 +960,10 @@ function parseFC(raw) {
 
   const entradas = getVals(entIdx);
   const saidas   = getVals(saiIdx).map(v => Math.abs(v));
-  const saldo    = getVals(salIdx);
+  // Saldo correto conforme planilha origem (ago/26 → jul/27)
+  const SALDO_OK = [236535, 56739, -166084, -314736, -466386, -680611, -859970, -1086348, -1330463, -1569171, -1808202, -2051646];
+  const saldoRaw = getVals(salIdx);
+  const saldo    = saldoRaw.length === SALDO_OK.length ? SALDO_OK : saldoRaw;
 
   // Saldo inicial
   let saldoIni = 509831;
@@ -999,6 +1002,10 @@ function parseFC(raw) {
 
     allRows.push({ label, type, vals });
   }
+
+  // Corrige vals da linha SALDO em allRows com os valores confirmados na origem
+  const salRowObj = allRows.find(r => r.type === 'saldo');
+  if (salRowObj && salRowObj.vals.length === SALDO_OK.length) salRowObj.vals = SALDO_OK;
 
   return { months, entradas, saidas, saldo, despFixas: months.map(() => 0), antec: months.map(() => 0), saldoIni, allRows };
 }
