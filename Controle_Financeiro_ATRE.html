@@ -193,6 +193,7 @@ tr:last-child td { border-bottom: none; }
       <div class="nav-item active" onclick="showPage('resumo',this)"><span class="icon">📊</span> Resumo</div>
       <div class="nav-section">Carteiras</div>
       <div class="nav-item" onclick="showPage('clube',this)"><span class="icon">👥</span> Partners Ouro</div>
+      <div class="nav-item" onclick="showPage('advisory',this)"><span class="icon">🤝</span> Advisory</div>
       <div class="nav-item" onclick="showPage('inadimplencia',this)"><span class="icon">⚠️</span> Inadimplência</div>
       <div class="nav-item" onclick="showPage('formacoes',this)"><span class="icon">📚</span> Formações</div>
       <div class="nav-section">Financeiro</div>
@@ -355,6 +356,57 @@ tr:last-child td { border-bottom: none; }
               <th onclick="sortTable(this)" data-col="8">Status</th>
             </tr></thead>
             <tbody id="clube-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADVISORY -->
+    <section class="page" id="page-advisory">
+      <div class="stats-row" id="advisory-stats"></div>
+      <div class="grid-1-2">
+        <div class="card">
+          <div class="card-title"><span class="icon">🍩</span> Status dos Clientes</div>
+          <div class="chart-wrap-sm"><canvas id="chartAdvisoryStatus"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="icon">💰</span> Valor Contratado por Status</div>
+          <div class="chart-wrap-sm"><canvas id="chartAdvisoryValor"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">🤝</span> Clientes – Advisory</div>
+        <div class="filters">
+          <input type="text" id="advisory-search" placeholder="🔍  Buscar por nome..." oninput="filterAdvisory()">
+          <select id="advisory-status" onchange="filterAdvisory()">
+            <option value="">Todos os status</option>
+            <option value="EM PAGAMENTO">Em Pagamento</option>
+            <option value="QUITADO">Quitado</option>
+            <option value="INADIMPLENTE">Inadimplente</option>
+          </select>
+          <select id="advisory-tipo" onchange="filterAdvisory()">
+            <option value="">Todos os tipos</option>
+            <option value="ADVISORY CLUB">Advisory Club</option>
+            <option value="ADVISORY">Advisory</option>
+          </select>
+          <span class="filter-count" id="advisory-count"></span>
+        </div>
+        <div class="table-wrap">
+          <table id="advisory-table">
+            <thead><tr>
+              <th onclick="sortTable(this)" data-col="0">#</th>
+              <th onclick="sortTable(this)" data-col="1">Nome</th>
+              <th onclick="sortTable(this)" data-col="2">Tipo</th>
+              <th onclick="sortTable(this)" data-col="3">Ano</th>
+              <th onclick="sortTable(this)" data-col="4">Início</th>
+              <th onclick="sortTable(this)" data-col="5">Fim</th>
+              <th onclick="sortTable(this)" data-col="6" class="td-center">Valor Contrato</th>
+              <th onclick="sortTable(this)" data-col="7" class="td-center">Ato Pago</th>
+              <th onclick="sortTable(this)" data-col="10" class="td-center">Pago</th>
+              <th onclick="sortTable(this)" data-col="9" class="td-center">A Pagar</th>
+              <th onclick="sortTable(this)" data-col="8">Status</th>
+            </tr></thead>
+            <tbody id="advisory-tbody"></tbody>
           </table>
         </div>
       </div>
@@ -713,6 +765,7 @@ const DRE_DATA = {
 // DYNAMIC GLOBALS
 // ============================================================
 let CLUBE_DATA = [];
+let ADVISORY_DATA = [];
 let _inadimData = { topRows: [], totalRow: [], pct: '—' };
 let INADIM_SALDOS = {}; // nome normalizado → soma col D da aba Inadimplentes
 let _periodo = '';
@@ -828,7 +881,7 @@ const pctOfDatasetLabel = (v, ctx) => {
 // NAVIGATION
 // ============================================================
 const PAGE_TITLES = {
-  resumo: 'Resumo Consolidado', clube: 'Partners Ouro',
+  resumo: 'Resumo Consolidado', clube: 'Partners Ouro', advisory: 'Advisory',
   inadimplencia: 'Inadimplência', fluxo: 'Fluxo de Caixa Projetado', dre: 'DRE – Formações',
   formacoes: 'Formações', contas: 'Contas Pagas', comissoes: 'Comissões', folha: 'Folha de Pagamento'
 };
@@ -1717,6 +1770,107 @@ function renderClubeCharts() {
 }
 
 // ============================================================
+// ADVISORY
+// ============================================================
+function parseAdvisory(raw) {
+  const out = [];
+  for (let i = 0; i < raw.length; i++) {
+    const r = raw[i];
+    const num = parseInt(r[0]);
+    if (!num) continue;
+    if (!r[1] || String(r[1]).toUpperCase().includes('TOTAL')) continue;
+    // [num, nome, tipo, ano, ini, fim, valor, ato, saldo, status, aPagar, pago]
+    out.push([num, r[1], r[2] || '', r[3] || '', fmtDateClube(r[4]), fmtDateClube(r[5]), r[6] || '0', r[7] || '0', r[9] || '0', r[12] || '', r[14] || '0', r[13] || '0']);
+  }
+  return out;
+}
+
+function renderAdvisory(data) {
+  const tbody = document.getElementById('advisory-tbody');
+  if (tbody) {
+    tbody.innerHTML = data.map(r => `<tr>
+      <td class="td-center">${r[0]}</td>
+      <td>${r[1]}</td>
+      <td>${r[2]}</td>
+      <td class="td-center">${r[3]}</td>
+      <td>${r[4]}</td><td>${r[5]}</td>
+      <td class="td-center">${parseBRL(r[6]) ? fmt(parseBRL(r[6])) : '—'}</td>
+      <td class="td-center">${parseBRL(r[7]) ? fmt(parseBRL(r[7])) : '—'}</td>
+      <td class="td-center">${parseBRL(r[11]) ? fmt(parseBRL(r[11])) : '—'}</td>
+      <td class="td-center">${parseBRL(r[10]) ? fmt(parseBRL(r[10])) : '—'}</td>
+      <td>${statusBadge(r[9])}</td>
+    </tr>`).join('');
+  }
+  setText('advisory-count', data.length + ' cliente(s)');
+}
+
+function filterAdvisory() {
+  const q  = document.getElementById('advisory-search').value.toLowerCase();
+  const st = document.getElementById('advisory-status').value;
+  const tp = document.getElementById('advisory-tipo').value;
+  renderAdvisory(ADVISORY_DATA.filter(r =>
+    r[1].toLowerCase().includes(q) &&
+    (!st || r[9] === st) &&
+    (!tp || r[2] === tp)
+  ));
+}
+
+function renderAdvisoryStats() {
+  const total = ADVISORY_DATA.length;
+  const pag  = ADVISORY_DATA.filter(r => r[9] === 'EM PAGAMENTO').length;
+  const quit = ADVISORY_DATA.filter(r => r[9] === 'QUITADO').length;
+  const inad = ADVISORY_DATA.filter(r => r[9] === 'INADIMPLENTE').length;
+  const totalVal = ADVISORY_DATA.reduce((s, r) => s + parseBRL(r[6]), 0);
+  const pagoVal  = ADVISORY_DATA.reduce((s, r) => s + parseBRL(r[11]), 0);
+  const el = document.getElementById('advisory-stats');
+  if (el) el.innerHTML = `
+    <div class="stat-pill"><div class="sp-label">Total Clientes</div><div class="sp-value">${total}</div></div>
+    <div class="stat-pill"><div class="sp-label">Em Pagamento</div><div class="sp-value" style="color:var(--accent)">${pag}</div></div>
+    <div class="stat-pill"><div class="sp-label">Quitados</div><div class="sp-value" style="color:var(--green)">${quit}</div></div>
+    <div class="stat-pill"><div class="sp-label">Inadimplentes</div><div class="sp-value" style="color:var(--red)">${inad}</div></div>
+    <div class="stat-pill"><div class="sp-label">Valor Total</div><div class="sp-value">${fmtCmp(totalVal)}</div></div>
+    <div class="stat-pill"><div class="sp-label">Total Pago</div><div class="sp-value" style="color:var(--green)">${fmtCmp(pagoVal)}</div></div>`;
+}
+
+function renderAdvisoryCharts() {
+  const pag  = ADVISORY_DATA.filter(r => r[9] === 'EM PAGAMENTO').length;
+  const quit = ADVISORY_DATA.filter(r => r[9] === 'QUITADO').length;
+  const inad = ADVISORY_DATA.filter(r => r[9] === 'INADIMPLENTE').length;
+  mkChart('chartAdvisoryStatus', {
+    type: 'doughnut',
+    data: { labels: ['Em Pagamento','Quitado','Inadimplente'], datasets: [{ data: [pag, quit, inad], backgroundColor: ['#1e88a8','#2a9d5c','#c0392b'], borderWidth: 1, borderColor: '#fff' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 14, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => { const t=ctx.dataset.data.reduce((a,b)=>a+(+b||0),0); return ' '+ctx.label+': '+ctx.parsed+' clientes ('+(t?(ctx.parsed/t*100).toFixed(1).replace('.',',')+'%':'')+')'; } } },
+        datalabels: { display: true, color: '#fff', font: { size: 10, weight: '600' }, formatter: pctLabel }
+      },
+      cutout: '66%'
+    }
+  });
+
+  const vPag = ADVISORY_DATA.filter(r=>r[9]==='EM PAGAMENTO').reduce((s,r)=>s+parseBRL(r[6]),0);
+  const vQuit= ADVISORY_DATA.filter(r=>r[9]==='QUITADO').reduce((s,r)=>s+parseBRL(r[6]),0);
+  const vInad= ADVISORY_DATA.filter(r=>r[9]==='INADIMPLENTE').reduce((s,r)=>s+parseBRL(r[10]),0);
+  mkChart('chartAdvisoryValor', {
+    type: 'bar',
+    data: { labels: ['Em Pagamento','Quitado','Inadimplente'], datasets: [{ label: 'Valor Contratado', data: [vPag,vQuit,vInad], backgroundColor: ['#1e88a8','#2a9d5c','#c0392b'], borderRadius: 3, borderSkipped: false }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.parsed.y) } },
+        datalabels: { display: true, anchor: 'end', align: 'top', color: '#3a2e26', font: { size: 10, weight: '600' },
+          formatter: (v, ctx) => { const t=ctx.chart.data.datasets[0].data.reduce((a,b)=>a+(+b||0),0); return fmt(v)+'\n'+(t?((v/t)*100).toFixed(1).replace('.',',')+'%':''); } }
+      },
+      scales: { x: { grid:{display:false} }, y: { ticks:{ callback: v=>fmt(v) }, grid:{color:'#f1e9dc'} } },
+      layout: { padding: { top: 18 } }
+    }
+  });
+}
+
+// ============================================================
 // RENDER — FLUXO DE CAIXA
 // ============================================================
 function renderFCKPIs(fc) {
@@ -2444,7 +2598,7 @@ function loadAll() {
     renderInadim();
   }, { range: 'A:Z' });
 
-  fetchSheet('Partners Ouro', raw => {
+  fetchSheet('Mentoria', raw => {
     CLUBE_DATA = parseClube(raw);
     renderClube(CLUBE_DATA);
     renderClubeStats();
@@ -2452,6 +2606,13 @@ function loadAll() {
     renderInadim();
 
     setText('inad-count', CLUBE_DATA.filter(r => r[8] === 'INADIMPLENTE').length || '—');
+  }, { range: 'A:Z' });
+
+  fetchSheet('Advisory', raw => {
+    ADVISORY_DATA = parseAdvisory(raw);
+    renderAdvisory(ADVISORY_DATA);
+    renderAdvisoryStats();
+    renderAdvisoryCharts();
   }, { range: 'A:Z' });
 
   fetchSheet('FC', raw => {
