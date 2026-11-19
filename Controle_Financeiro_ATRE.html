@@ -192,7 +192,7 @@ tr:last-child td { border-bottom: none; }
       <div class="nav-section">Principal</div>
       <div class="nav-item active" onclick="showPage('resumo',this)"><span class="icon">📊</span> Resumo</div>
       <div class="nav-section">Carteiras</div>
-      <div class="nav-item" onclick="showPage('clube',this)"><span class="icon">👥</span> Partners Ouro</div>
+      <div class="nav-item" onclick="showPage('clube',this)"><span class="icon">👥</span> Partners</div>
       <div class="nav-item" onclick="showPage('advisory',this)"><span class="icon">🤝</span> Advisory</div>
       <div class="nav-item" onclick="showPage('inadimplencia',this)"><span class="icon">⚠️</span> Inadimplência</div>
       <div class="nav-item" onclick="showPage('formacoes',this)"><span class="icon">📚</span> Formações</div>
@@ -325,7 +325,7 @@ tr:last-child td { border-bottom: none; }
         </div>
       </div>
       <div class="card">
-        <div class="card-title"><span class="icon">👥</span> Clientes – Partners Ouro</div>
+        <div class="card-title"><span class="icon">👥</span> Clientes – Partners</div>
         <div class="filters">
           <input type="text" id="clube-search" placeholder="🔍  Buscar por nome..." oninput="filterClube()">
           <select id="clube-status" onchange="filterClube()">
@@ -417,7 +417,7 @@ tr:last-child td { border-bottom: none; }
       <div id="inad-kpis" class="kpi-grid">
         <div class="kpi-card red"><div class="kpi-label">Total Inadimplente</div><div class="kpi-value" id="inad-total">—</div><div class="kpi-sub">Valores em aberto</div></div>
         <div class="kpi-card orange"><div class="kpi-label">% Inadimplência</div><div class="kpi-value" id="inad-pct">—</div><div class="kpi-sub" id="inad-pct-sub">vs. A Receber total</div></div>
-        <div class="kpi-card blue"><div class="kpi-label">Clientes Inadimplentes</div><div class="kpi-value" id="inad-count">—</div><div class="kpi-sub">No Partners Ouro</div></div>
+        <div class="kpi-card blue"><div class="kpi-label">Clientes Inadimplentes</div><div class="kpi-value" id="inad-count">—</div><div class="kpi-sub">No Partners</div></div>
       </div>
       <div class="grid-2">
         <div class="card">
@@ -439,7 +439,7 @@ tr:last-child td { border-bottom: none; }
         </div>
       </div>
       <div class="card">
-        <div class="card-title"><span class="icon">👥</span> Inadimplentes – Partners Ouro</div>
+        <div class="card-title"><span class="icon">👥</span> Inadimplentes – Partners</div>
         <div class="table-wrap">
           <table id="inadim-table">
             <thead><tr>
@@ -881,7 +881,7 @@ const pctOfDatasetLabel = (v, ctx) => {
 // NAVIGATION
 // ============================================================
 const PAGE_TITLES = {
-  resumo: 'Resumo Consolidado', clube: 'Partners Ouro', advisory: 'Advisory',
+  resumo: 'Resumo Consolidado', clube: 'Partners', advisory: 'Advisory',
   inadimplencia: 'Inadimplência', fluxo: 'Fluxo de Caixa Projetado', dre: 'DRE – Formações',
   formacoes: 'Formações', contas: 'Contas Pagas', comissoes: 'Comissões', folha: 'Folha de Pagamento'
 };
